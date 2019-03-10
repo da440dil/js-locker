@@ -1,0 +1,30 @@
+{
+  "name": "locker",
+  "version": "0.0.0",
+  "description": "Distributed locking with pluggable storage",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "test": "mocha -r ts-node/register src/**/*.spec.ts -b",
+    "build": "tsc -p tsconfig.build.json",
+    "flush": "node -e \"child_process.exec(os.platform().startsWith('win') ? 'rmdir lib /s /q' : 'rm lib -rf')\"",
+    "preversion": "npm test",
+    "version": "npm run build && git add -A lib",
+    "example": "ts-node src/example.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "dependencies": {
+    "redis": "2.8.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "5.2.6",
+    "@types/node": "11.10.5",
+    "@types/redis": "2.8.10",
+    "mocha": "6.0.2",
+    "ts-node": "8.0.3",
+    "typescript": "3.3.3333"
+  }
+}
