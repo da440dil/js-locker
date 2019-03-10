@@ -43,12 +43,14 @@ export interface Storage {
  * Params defines parameters for creating new Locker.
  */
 export type Params = {
-  /** TTL of key. */
+  /** TTL of key in milliseconds. */
   ttl: number;
   /** Maximum number of retries if key is locked. */
   retryCount?: number;
-  /** Delay between retries if key is locked. */
+  /** Delay in milliseconds between retries if key is locked. */
   retryDelay?: number;
+  /** Maximum time in milliseconds randomly added to delays between retries to improve performance under high contention. */
+  retryJitter?: number;
   /** Prefix of key. */
   prefix?: string;
 }
@@ -65,16 +67,18 @@ class LockerImpl {
   private _ttl: number;
   private _retryCount: number;
   private _retryDelay: number;
+  private _retryJitter: number;
   private _prefix: string;
-  constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, prefix = '' }: Params) {
+  constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: Params) {
     this._storage = storage
     this._ttl = ttl
     this._retryCount = retryCount
     this._retryDelay = retryDelay
+    this._retryJitter = retryJitter
     this._prefix = prefix
   }
   createLock(key: string): Lock {
-    return new LockImpl(this._storage, this._ttl, this._retryCount, this._retryDelay, this._prefix + key)
+    return new LockImpl(this._storage, this._ttl, this._retryCount, this._retryDelay, this._retryJitter, this._prefix + key)
   }
 }
 
@@ -83,13 +87,15 @@ class LockImpl {
   private _ttl: number;
   private _retryCount: number;
   private _retryDelay: number;
+  private _retryJitter: number;
   private _key: string;
   private _token: string;
-  constructor(storage: Storage, ttl: number, retryCount: number, retryDelay: number, key: string) {
+  constructor(storage: Storage, ttl: number, retryCount: number, retryDelay: number, retryJitter: number, key: string) {
     this._storage = storage
     this._ttl = ttl
     this._retryCount = retryCount
     this._retryDelay = retryDelay
+    this._retryJitter = retryJitter
     this._key = key
     this._token = ''
   }
@@ -121,7 +127,7 @@ class LockImpl {
       return v
     }
     counter--
-    await sleep(this._retryDelay)
+    await sleep(Math.max(0, this._retryDelay + Math.floor((Math.random() * 2 - 1) * this._retryJitter)))
     return this._insert(token, counter)
   }
   private async _update(): Promise<number> {

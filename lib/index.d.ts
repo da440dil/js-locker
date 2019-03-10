@@ -38,12 +38,14 @@ export interface Storage {
  * Params defines parameters for creating new Locker.
  */
 export declare type Params = {
-    /** TTL of key. */
+    /** TTL of key in milliseconds. */
     ttl: number;
     /** Maximum number of retries if key is locked. */
     retryCount?: number;
-    /** Delay between retries if key is locked. */
+    /** Delay in milliseconds between retries if key is locked. */
     retryDelay?: number;
+    /** Maximum time in milliseconds randomly added to delays between retries to improve performance under high contention. */
+    retryJitter?: number;
     /** Prefix of key. */
     prefix?: string;
 };
