@@ -1,5 +1,5 @@
 {
-  "name": "js-locker",
+  "name": "@da440dil/js-locker",
   "version": "0.0.0",
   "description": "Distributed locking with pluggable storage",
   "main": "lib/index.js",
