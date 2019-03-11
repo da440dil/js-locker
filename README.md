@@ -6,8 +6,8 @@ Distributed locking with pluggable storage.
 
 ```javascript
 import { createClient } from 'redis'
-import { createStorage } from 'js-locker/redis'
-import { createLocker, Lock } from 'js-locker'
+import { createStorage } from '@da440dil/js-locker/redis'
+import { createLocker, Lock } from '@da440dil/js-locker'
 
 class MyLock {
   private _lock: Lock;
