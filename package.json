@@ -1,5 +1,5 @@
 {
-  "name": "locker",
+  "name": "js-locker",
   "version": "0.0.0",
   "description": "Distributed locking with pluggable storage",
   "main": "lib/index.js",
@@ -15,7 +15,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "private": true,
+  "private": false,
   "dependencies": {
     "redis": "2.8.0"
   },
@@ -26,5 +26,9 @@
     "mocha": "6.0.2",
     "ts-node": "8.0.3",
     "typescript": "3.3.3333"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com//da440dil/js-locker.git"
   }
 }
