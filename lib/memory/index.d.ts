@@ -1,10 +1,8 @@
+import { Storage as S } from '../.';
 /**
  * Storage implements storage in memory.
  */
-export interface Storage {
-    insert(key: string, value: string, ttl: number): Promise<number>;
-    upsert(key: string, value: string, ttl: number): Promise<number>;
-    remove(key: string, value: string): Promise<boolean>;
+export interface Storage extends S {
     /** Stops refresh cycle. */
     quit(): void;
 }
