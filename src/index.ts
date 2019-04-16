@@ -1,5 +1,11 @@
 import { randomBytes } from 'crypto'
 
+/** ErrInvalidTTL is the error message returned when createCounter receives invalid value of ttl. */
+export const ErrInvalidTTL = 'ttl must be an integer greater than zero'
+export const ErrInvalidRetryCount = 'retryCount must be an integer greater than or equal to zero'
+export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than or equal to zero'
+export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
+
 /**
  * Locker defines parameters for creating new Lock.
  */
@@ -40,26 +46,40 @@ export interface Storage {
 }
 
 /**
- * Params defines parameters for creating new Locker.
- */
-export type Params = {
-  /** TTL of key in milliseconds. */
-  ttl: number;
-  /** Maximum number of retries if key is locked. */
-  retryCount?: number;
-  /** Delay in milliseconds between retries if key is locked. */
-  retryDelay?: number;
-  /** Maximum time in milliseconds randomly added to delays between retries to improve performance under high contention. */
-  retryJitter?: number;
-  /** Prefix of key. */
-  prefix?: string;
-}
-
-/**
  * Creates new Locker.
  */
-export function createLocker(storage: Storage, params: Params): Locker {
-  return new LockerImpl(storage, params)
+export function createLocker(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: {
+  /** TTL of key in milliseconds (must be greater than 0). */
+  ttl: number;
+  /** Maximum number of retries if key is locked 
+   * (must be greater than or equal to 0, by default equals 0).
+   */
+  retryCount?: number;
+  /** Delay in milliseconds between retries if key is locked
+   * (must be greater than or equal to 0, by default equals 0).
+   */
+  retryDelay?: number;
+  /** Maximum time in milliseconds randomly added to delays between retries 
+   * to improve performance under high contention 
+   * (must be greater than or equal to 0, by default equals 0).
+   */
+  retryJitter?: number;
+  /** Prefix of a key. */
+  prefix?: string;
+}): Locker {
+  if (!(Number.isSafeInteger(ttl) && ttl > 0)) {
+    throw new Error(ErrInvalidTTL)
+  }
+  if (!(Number.isSafeInteger(retryCount) && retryCount >= 0)) {
+    throw new Error(ErrInvalidRetryCount)
+  }
+  if (!(Number.isSafeInteger(retryDelay) && retryDelay >= 0)) {
+    throw new Error(ErrInvalidRetryDelay)
+  }
+  if (!(Number.isSafeInteger(retryJitter) && retryJitter >= 0)) {
+    throw new Error(ErrInvalidRetryJitter)
+  }
+  return new LockerImpl(storage, ttl, retryCount, retryDelay, retryJitter, prefix)
 }
 
 class LockerImpl {
@@ -69,7 +89,7 @@ class LockerImpl {
   private _retryDelay: number;
   private _retryJitter: number;
   private _prefix: string;
-  constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: Params) {
+  constructor(storage: Storage, ttl: number, retryCount: number, retryDelay: number, retryJitter: number, prefix: string) {
     this._storage = storage
     this._ttl = ttl
     this._retryCount = retryCount

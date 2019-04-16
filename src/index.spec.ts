@@ -1,152 +1,112 @@
 import 'mocha'
 import assert from 'assert'
-import { createClient, RedisClient } from 'redis'
-import * as RedisStorage from './redis'
-import * as MemoryStorage from './memory'
-import { createLocker, Locker, Lock } from '.'
+import sinon from 'sinon'
+import {
+  createLocker,
+  Storage,
+  ErrInvalidTTL,
+  ErrInvalidRetryCount,
+  ErrInvalidRetryDelay
+} from '.'
 
-describe('locker with redis storage', () => {
-  let client: RedisClient
-  let storage: RedisStorage.Storage
-  let locker: Locker
-  let l1: Lock
-  let l2: Lock
+const key = 'key'
+const ttl = 1000
+const retryCount = 2
+const retryDelay = 20
+const prefix = 'lock#'
 
-  const db = 10
-  const key = 'key'
-  const ttl = 1000
-  const retryCount = 2
-  const retryDelay = 100
+describe('createLocker', () => {
+  const storage = <Storage>{}
 
-  before(async () => {
-    client = createClient({ db: db })
-    await removeKey(client, key)
-    storage = RedisStorage.createStorage(client)
-    locker = createLocker(storage, { ttl: ttl, retryCount: retryCount, retryDelay: retryDelay })
-    l1 = locker.createLock(key)
-    l2 = locker.createLock(key)
+  it('should create Locker', () => {
+    assert.doesNotThrow(() => {
+      createLocker(storage, { ttl, retryCount, retryDelay, prefix })
+    })
   })
 
-  after(async () => {
-    await removeKey(client, key)
-    client.quit()
+  it('should throw if ttl is less than or equals to zero', () => {
+    assert.throws(() => {
+      createLocker(storage, { ttl: 0, retryCount, retryDelay, prefix })
+    }, new Error(ErrInvalidTTL))
   })
 
-  it("first locker.lock() should return -1", async () => {
-    const v = await l1.lock()
-    assert(v === -1)
+  it('should throw if type of ttl is not integer', () => {
+    assert.throws(() => {
+      createLocker(storage, { ttl: 4.2, retryCount, retryDelay, prefix })
+    }, new Error(ErrInvalidTTL))
   })
 
-  it("first locker.lock() should return -1", async () => {
-    const v = await l1.lock()
-    assert(v === -1)
+  it('should throw if retryCount is less than zero', () => {
+    assert.throws(() => {
+      createLocker(storage, { ttl, retryCount: -1, retryDelay, prefix })
+    }, new Error(ErrInvalidRetryCount))
   })
 
-  it("second locker.lock() should return v >= 0 && v <= ttl", async () => {
-    const v = await l2.lock()
-    assert(v >= 0 && v <= ttl)
+  it('should throw if retryCount is not integer', () => {
+    assert.throws(() => {
+      createLocker(storage, { ttl, retryCount: 4.2, retryDelay, prefix })
+    }, new Error(ErrInvalidRetryCount))
   })
 
-  it("first locker.unlock() should return true", async () => {
-    const v = await l1.unlock()
-    assert(v === true)
+  it('should throw if retryDelay is less than zero', () => {
+    assert.throws(() => {
+      createLocker(storage, { ttl, retryCount, retryDelay: -1, prefix })
+    }, new Error(ErrInvalidRetryDelay))
   })
 
-  it("first locker.unlock() should return false", async () => {
-    const v = await l1.unlock()
-    assert(v === false)
-  })
-
-  it("second locker.lock() should return -1", async () => {
-    const v = await l2.lock()
-    assert(v === -1)
-  })
-
-  it("second locker.unlock() should return true", async () => {
-    const v = await l2.unlock()
-    assert(v === true)
-  })
-
-  it("second locker.lock() should return -1 after first locker.unlock() has been called", async () => {
-    const v1 = await l1.lock()
-    assert(v1 === -1)
-    setTimeout(() => { l1.unlock() }, retryDelay)
-    const v2 = await l2.lock()
-    assert(v2 === -1)
+  it('should throw if retryDelay is not integer', () => {
+    assert.throws(() => {
+      createLocker(storage, { ttl, retryCount, retryDelay: 4.2, prefix })
+    }, new Error(ErrInvalidRetryDelay))
   })
 })
 
-function removeKey(client: RedisClient, key: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    client.del(key, (err) => {
-      if (err) return reject(err)
-      resolve()
-    })
-  })
-}
+describe('Lock', () => {
+  const storage = <Storage>{}
 
-describe('locker with memory storage', () => {
-  let storage: MemoryStorage.Storage
-  let factory: Locker
-  let l1: Lock
-  let l2: Lock
+  const insert = sinon.stub().resolves(-1)
+  const upsert = sinon.stub().resolves(-1)
+  const remove = sinon.stub().resolves(true)
+  storage.insert = insert
+  storage.upsert = upsert
+  storage.remove = remove
 
-  const key = 'key'
-  const ttl = 1000
-  const retryCount = 2
-  const retryDelay = 100
+  const locker = createLocker(storage, { ttl, retryCount, retryDelay, prefix })
+  const lock = locker.createLock(key)
 
-  before(() => {
-    storage = MemoryStorage.createStorage(ttl)
-    factory = createLocker(storage, { ttl: ttl, retryCount: retryCount, retryDelay: retryDelay })
-    l1 = factory.createLock(key)
-    l2 = factory.createLock(key)
-  })
-
-  after(() => {
-    storage.quit()
-  })
-
-  it("first locker.lock() should return -1", async () => {
-    const v = await l1.lock()
-    assert(v === -1)
-  })
-
-  it("first locker.lock() should return -1", async () => {
-    const v = await l1.lock()
-    assert(v === -1)
-  })
-
-  it("second locker.lock() should return v >= 0 && v <= ttl", async () => {
-    const v = await l2.lock()
-    assert(v >= 0 && v <= ttl)
-  })
-
-  it("first locker.unlock() should return true", async () => {
-    const v = await l1.unlock()
-    assert(v === true)
-  })
-
-  it("first locker.unlock() should return false", async () => {
-    const v = await l1.unlock()
-    assert(v === false)
-  })
-
-  it("second locker.lock() should return -1", async () => {
-    const v = await l2.lock()
-    assert(v === -1)
-  })
-
-  it("second locker.unlock() should return true", async () => {
-    const v = await l2.unlock()
-    assert(v === true)
-  })
-
-  it("second locker.lock() should return -1 after first locker.unlock() has been called", async () => {
-    const v1 = await l1.lock()
+  it('should lock', async () => {
+    const v1 = await lock.lock()
+    const v2 = await lock.lock()
     assert(v1 === -1)
-    setTimeout(() => { l1.unlock() }, retryDelay)
-    const v2 = await l2.lock()
     assert(v2 === -1)
+    assert(insert.calledOnce)
+    assert(upsert.calledOnce)
+    const a1 = insert.getCall(0).args
+    const a2 = upsert.getCall(0).args
+    assert(a1[0] === prefix + key)
+    assert(a2[0] === prefix + key)
+    assert(typeof a1[1] === 'string' && typeof a2[1] === 'string' && a1[1] === a2[1])
+    assert(a1[2] === ttl)
+    assert(a2[2] === ttl)
+  })
+
+  it('should unlock', async () => {
+    const v1 = await lock.unlock()
+    const v2 = await lock.unlock()
+    assert(v1 === true)
+    assert(v2 === false)
+    assert(remove.calledOnce)
+    const a = remove.getCall(0).args
+    assert(a[0] === prefix + key)
+    assert(typeof a[1] === 'string')
+  })
+
+  it('should retry lock', async () => {
+    const insert = sinon.stub().resolves(1)
+    storage.insert = insert
+
+    const v = await lock.lock()
+    assert(v === 1)
+    assert(insert.callCount === retryCount + 1)
   })
 })

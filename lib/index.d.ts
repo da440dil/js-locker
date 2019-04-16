@@ -1,3 +1,8 @@
+/** ErrInvalidTTL is the error message returned when createCounter receives invalid value of ttl. */
+export declare const ErrInvalidTTL = "ttl must be an integer greater than zero";
+export declare const ErrInvalidRetryCount = "retryCount must be an integer greater than or equal to zero";
+export declare const ErrInvalidRetryDelay = "retryDelay must be an integer greater than or equal to zero";
+export declare const ErrInvalidRetryJitter = "retryJitter must be an integer greater than or equal to zero";
 /**
  * Locker defines parameters for creating new Lock.
  */
@@ -35,21 +40,24 @@ export interface Storage {
     remove(key: string, value: string): Promise<boolean>;
 }
 /**
- * Params defines parameters for creating new Locker.
- */
-export declare type Params = {
-    /** TTL of key in milliseconds. */
-    ttl: number;
-    /** Maximum number of retries if key is locked. */
-    retryCount?: number;
-    /** Delay in milliseconds between retries if key is locked. */
-    retryDelay?: number;
-    /** Maximum time in milliseconds randomly added to delays between retries to improve performance under high contention. */
-    retryJitter?: number;
-    /** Prefix of key. */
-    prefix?: string;
-};
-/**
  * Creates new Locker.
  */
-export declare function createLocker(storage: Storage, params: Params): Locker;
+export declare function createLocker(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: {
+    /** TTL of key in milliseconds (must be greater than 0). */
+    ttl: number;
+    /** Maximum number of retries if key is locked
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryCount?: number;
+    /** Delay in milliseconds between retries if key is locked
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryDelay?: number;
+    /** Maximum time in milliseconds randomly added to delays between retries
+     * to improve performance under high contention
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryJitter?: number;
+    /** Prefix of a key. */
+    prefix?: string;
+}): Locker;

@@ -1,33 +1,18 @@
-import { Storage as S } from '../.'
-
-/**
- * Storage implements storage in memory.
- */
-export interface Storage extends S {
-  /** Stops refresh cycle. */
-  quit(): void;
-}
-
-/**
- * Creates new Storage.
- * @param refreshInterval Interval to remove stale keys in milliseconds.
- */
-export function createStorage(refreshInterval: number): Storage {
-  return new MemoryStorage(refreshInterval)
-}
-
 type Data = {
   value: string;
   ttl: number;
 }
 
-class MemoryStorage {
+export class Storage {
   private _db: Map<string, Data>;
   private _timeout: number;
   private _timer?: NodeJS.Timeout;
-  constructor(timeout: number) {
+  /**
+   * @param refreshInterval Interval to remove stale keys in milliseconds.
+   */
+  constructor(refreshInterval: number) {
     this._db = new Map()
-    this._timeout = timeout
+    this._timeout = refreshInterval
     this._init()
   }
   private _init() {

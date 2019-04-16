@@ -1,4 +1,3 @@
-import { Storage } from '../.'
 import { RedisClient } from 'redis'
 
 /**
@@ -14,17 +13,7 @@ const insert = 'if redis.call("set", KEYS[1], ARGV[1], "nx", "px", ARGV[2]) == f
 const upsert = 'local v = redis.call("get", KEYS[1]) if v == ARGV[1] then redis.call("pexpire", KEYS[1], ARGV[2]) return nil end if v == false then redis.call("set", KEYS[1], ARGV[1], "px", ARGV[2]) return nil end return redis.call("pttl", KEYS[1])'
 const remove = 'if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) end return 0'
 
-export { Storage }
-
-/**
- * Creates new Storage.
- * @param client 
- */
-export function createStorage(client: RedisClient): Storage {
-  return new RedisStorage(client)
-}
-
-class RedisStorage {
+export class Storage {
   private _client: RedisClient;
   constructor(client: RedisClient) {
     this._client = client
