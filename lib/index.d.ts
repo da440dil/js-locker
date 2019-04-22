@@ -1,23 +1,3 @@
-/** ErrInvalidTTL is the error message returned when createCounter receives invalid value of ttl. */
-export declare const ErrInvalidTTL = "ttl must be an integer greater than zero";
-export declare const ErrInvalidRetryCount = "retryCount must be an integer greater than or equal to zero";
-export declare const ErrInvalidRetryDelay = "retryDelay must be an integer greater than or equal to zero";
-export declare const ErrInvalidRetryJitter = "retryJitter must be an integer greater than or equal to zero";
-/**
- * Locker defines parameters for creating new Lock.
- */
-export interface Locker {
-    createLock(key: string): Lock;
-}
-/**
- * Lock implements distributed locking.
- */
-export interface Lock {
-    /** Applies the lock, returns -1 on success, ttl in milliseconds on failure. */
-    lock(): Promise<number>;
-    /** Releases the lock, returns true on success. */
-    unlock(): Promise<boolean>;
-}
 /**
  * Storage imlements key value storage.
  */
@@ -39,25 +19,69 @@ export interface Storage {
      */
     remove(key: string, value: string): Promise<boolean>;
 }
+/** ErrInvalidTTL is the error message returned when LockerFactory constructor receives invalid value of ttl. */
+export declare const ErrInvalidTTL = "ttl must be an integer greater than zero";
+/** ErrInvalidRetryCount is the error message returned when LockerFactory constructor receives invalid value of retryCount. */
+export declare const ErrInvalidRetryCount = "retryCount must be an integer greater than or equal to zero";
+/** ErrInvalidRetryDelay is the error message returned when LockerFactory constructor receives invalid value of retryDelay. */
+export declare const ErrInvalidRetryDelay = "retryDelay must be an integer greater than or equal to zero";
+/** ErrInvalidRetryJitter is the error message returned when LockerFactory constructor receives invalid value of retryJitter. */
+export declare const ErrInvalidRetryJitter = "retryJitter must be an integer greater than or equal to zero";
 /**
- * Creates new Locker.
+ * LockerFactory defines parameters for creating new Locker.
  */
-export declare function createLocker(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: {
-    /** TTL of key in milliseconds (must be greater than 0). */
-    ttl: number;
-    /** Maximum number of retries if key is locked
-     * (must be greater than or equal to 0, by default equals 0).
-     */
-    retryCount?: number;
-    /** Delay in milliseconds between retries if key is locked
-     * (must be greater than or equal to 0, by default equals 0).
-     */
-    retryDelay?: number;
-    /** Maximum time in milliseconds randomly added to delays between retries
-     * to improve performance under high contention
-     * (must be greater than or equal to 0, by default equals 0).
-     */
-    retryJitter?: number;
-    /** Prefix of a key. */
-    prefix?: string;
-}): Locker;
+export declare class LockerFactory {
+    private _storage;
+    private _ttl;
+    private _retryCount;
+    private _retryDelay;
+    private _retryJitter;
+    private _prefix;
+    constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: {
+        /** TTL of key in milliseconds (must be greater than 0). */
+        ttl: number;
+        /** Maximum number of retries if key is locked
+         * (must be greater than or equal to 0, by default equals 0).
+         */
+        retryCount?: number;
+        /** Delay in milliseconds between retries if key is locked
+         * (must be greater than or equal to 0, by default equals 0).
+         */
+        retryDelay?: number;
+        /** Maximum time in milliseconds randomly added to delays between retries
+         * to improve performance under high contention
+         * (must be greater than or equal to 0, by default equals 0).
+         */
+        retryJitter?: number;
+        /** Prefix of a key. */
+        prefix?: string;
+    });
+    /** Creates new Locker. */
+    createLocker(key: string): Locker;
+}
+/**
+ * Locker implements distributed locking.
+ */
+export declare class Locker {
+    private _storage;
+    private _ttl;
+    private _retryCount;
+    private _retryDelay;
+    private _retryJitter;
+    private _key;
+    private _token;
+    constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, key }: {
+        ttl: number;
+        retryCount: number;
+        retryDelay: number;
+        retryJitter: number;
+        key: string;
+    });
+    /** Applies the lock, returns -1 on success, ttl in milliseconds on failure. */
+    lock(): Promise<number>;
+    /** Releases the lock, returns true on success. */
+    unlock(): Promise<boolean>;
+    private _create;
+    private _insert;
+    private _update;
+}

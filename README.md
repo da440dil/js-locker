@@ -6,29 +6,29 @@ Distributed locking with pluggable storage.
 
 ```javascript
 import { createClient } from 'redis'
-import { createLocker, Lock } from '@da440dil/js-locker'
+import { LockerFactory, Locker } from '@da440dil/js-locker'
 import { Storage } from '@da440dil/js-locker/lib/redis'
 
-// Wrapper to log output of Lock methods call
-class MyLock {
-  private _lock: Lock;
+// Wrapper to log output of Locker methods call
+class MyLocker {
+  private _locker: Locker;
   private _id: number;
-  constructor(lock: Lock, id: number) {
-    this._lock = lock
+  constructor(locker: Locker, id: number) {
+    this._locker = locker
     this._id = id
   }
   async lock() {
-    const v = await this._lock.lock()
+    const v = await this._locker.lock()
     if (v === -1) {
-      console.log(`Lock#${this._id} has locked the key`)
+      console.log(`Locker#${this._id} has locked the key`)
     } else {
-      console.log(`Lock#${this._id} has failed to lock the key, retry after ${v} ms`)
+      console.log(`Locker#${this._id} has failed to lock the key, retry after ${v} ms`)
     }
   }
   async unlock() {
-    const ok = await this._lock.unlock()
+    const ok = await this._locker.unlock()
     if (ok) {
-      console.log(`Locker${this._id} has unlocked the key`)
+      console.log(`Locker#${this._id} has unlocked the key`)
     } else {
       console.log(`Locker#${this._id} has failed to unlock the key`)
     }
@@ -44,21 +44,21 @@ class MyLock {
   // Create Redis storage
   const storage = new Storage(client)
   const params = { ttl: ttl }
-  const locker = createLocker(storage, params)
-  // Create first lock
-  const lock1 = new MyLock(locker.createLock(key), 1)
-  // Create second lock
-  const lock2 = new MyLock(locker.createLock(key), 2)
+  const factory = new LockerFactory(storage, params)
+  // Create first locker
+  const locker1 = new MyLocker(factory.createLocker(key), 1)
+  // Create second locker
+  const locker2 = new MyLocker(factory.createLocker(key), 2)
 
-  await lock1.lock() // Lock#1 has locked the key
-  await lock2.lock() // Lock#2 has failed to lock the key, retry after 99 ms
+  await locker1.lock() // Locker#1 has locked the key
+  await locker2.lock() // Locker#2 has failed to lock the key, retry after 99 ms
   await sleep(200)
   console.log('Timeout 200 ms is up')
-  await lock2.lock()   // Lock#2 has locked the key
-  await lock1.lock()   // Lock#1 has failed to lock the key, retry after 98 ms
-  await lock2.unlock() // Lock#2 has unlocked the key
-  await lock1.lock()   // Lock#1 has locked the key
-  await lock1.unlock() // Lock#1 has unlocked the key
+  await locker2.lock()   // Locker#2 has locked the key
+  await locker1.lock()   // Locker#1 has failed to lock the key, retry after 98 ms
+  await locker2.unlock() // Locker#2 has unlocked the key
+  await locker1.lock()   // Locker#1 has locked the key
+  await locker1.unlock() // Locker#1 has unlocked the key
 
   // Close Redis connection
   client.quit()

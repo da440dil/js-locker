@@ -2,7 +2,7 @@ import 'mocha'
 import assert from 'assert'
 import sinon from 'sinon'
 import {
-  createLocker,
+  LockerFactory,
   Storage,
   ErrInvalidTTL,
   ErrInvalidRetryCount,
@@ -15,53 +15,53 @@ const retryCount = 2
 const retryDelay = 20
 const prefix = 'lock#'
 
-describe('createLocker', () => {
+describe('LockerFactory constructor', () => {
   const storage = <Storage>{}
 
-  it('should create Locker', () => {
+  it('should create LockerFactory', () => {
     assert.doesNotThrow(() => {
-      createLocker(storage, { ttl, retryCount, retryDelay, prefix })
+      new LockerFactory(storage, { ttl, retryCount, retryDelay, prefix })
     })
   })
 
   it('should throw if ttl is less than or equals to zero', () => {
     assert.throws(() => {
-      createLocker(storage, { ttl: 0, retryCount, retryDelay, prefix })
+      new LockerFactory(storage, { ttl: 0, retryCount, retryDelay, prefix })
     }, new Error(ErrInvalidTTL))
   })
 
   it('should throw if type of ttl is not integer', () => {
     assert.throws(() => {
-      createLocker(storage, { ttl: 4.2, retryCount, retryDelay, prefix })
+      new LockerFactory(storage, { ttl: 4.2, retryCount, retryDelay, prefix })
     }, new Error(ErrInvalidTTL))
   })
 
   it('should throw if retryCount is less than zero', () => {
     assert.throws(() => {
-      createLocker(storage, { ttl, retryCount: -1, retryDelay, prefix })
+      new LockerFactory(storage, { ttl, retryCount: -1, retryDelay, prefix })
     }, new Error(ErrInvalidRetryCount))
   })
 
   it('should throw if retryCount is not integer', () => {
     assert.throws(() => {
-      createLocker(storage, { ttl, retryCount: 4.2, retryDelay, prefix })
+      new LockerFactory(storage, { ttl, retryCount: 4.2, retryDelay, prefix })
     }, new Error(ErrInvalidRetryCount))
   })
 
   it('should throw if retryDelay is less than zero', () => {
     assert.throws(() => {
-      createLocker(storage, { ttl, retryCount, retryDelay: -1, prefix })
+      new LockerFactory(storage, { ttl, retryCount, retryDelay: -1, prefix })
     }, new Error(ErrInvalidRetryDelay))
   })
 
   it('should throw if retryDelay is not integer', () => {
     assert.throws(() => {
-      createLocker(storage, { ttl, retryCount, retryDelay: 4.2, prefix })
+      new LockerFactory(storage, { ttl, retryCount, retryDelay: 4.2, prefix })
     }, new Error(ErrInvalidRetryDelay))
   })
 })
 
-describe('Lock', () => {
+describe('Locker', () => {
   const storage = <Storage>{}
 
   const insert = sinon.stub().resolves(-1)
@@ -71,12 +71,12 @@ describe('Lock', () => {
   storage.upsert = upsert
   storage.remove = remove
 
-  const locker = createLocker(storage, { ttl, retryCount, retryDelay, prefix })
-  const lock = locker.createLock(key)
+  const factory = new LockerFactory(storage, { ttl, retryCount, retryDelay, prefix })
+  const locker = factory.createLocker(key)
 
   it('should lock', async () => {
-    const v1 = await lock.lock()
-    const v2 = await lock.lock()
+    const v1 = await locker.lock()
+    const v2 = await locker.lock()
     assert(v1 === -1)
     assert(v2 === -1)
     assert(insert.calledOnce)
@@ -91,8 +91,8 @@ describe('Lock', () => {
   })
 
   it('should unlock', async () => {
-    const v1 = await lock.unlock()
-    const v2 = await lock.unlock()
+    const v1 = await locker.unlock()
+    const v2 = await locker.unlock()
     assert(v1 === true)
     assert(v2 === false)
     assert(remove.calledOnce)
@@ -105,7 +105,7 @@ describe('Lock', () => {
     const insert = sinon.stub().resolves(1)
     storage.insert = insert
 
-    const v = await lock.lock()
+    const v = await locker.lock()
     assert(v === 1)
     assert(insert.callCount === retryCount + 1)
   })

@@ -1,28 +1,5 @@
 import { randomBytes } from 'crypto'
 
-/** ErrInvalidTTL is the error message returned when createCounter receives invalid value of ttl. */
-export const ErrInvalidTTL = 'ttl must be an integer greater than zero'
-export const ErrInvalidRetryCount = 'retryCount must be an integer greater than or equal to zero'
-export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than or equal to zero'
-export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
-
-/**
- * Locker defines parameters for creating new Lock.
- */
-export interface Locker {
-  createLock(key: string): Lock;
-}
-
-/**
- * Lock implements distributed locking.
- */
-export interface Lock {
-  /** Applies the lock, returns -1 on success, ttl in milliseconds on failure. */
-  lock(): Promise<number>;
-  /** Releases the lock, returns true on success. */
-  unlock(): Promise<boolean>;
-}
-
 /**
  * Storage imlements key value storage.
  */
@@ -45,51 +22,56 @@ export interface Storage {
   remove(key: string, value: string): Promise<boolean>;
 }
 
-/**
- * Creates new Locker.
- */
-export function createLocker(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: {
-  /** TTL of key in milliseconds (must be greater than 0). */
-  ttl: number;
-  /** Maximum number of retries if key is locked 
-   * (must be greater than or equal to 0, by default equals 0).
-   */
-  retryCount?: number;
-  /** Delay in milliseconds between retries if key is locked
-   * (must be greater than or equal to 0, by default equals 0).
-   */
-  retryDelay?: number;
-  /** Maximum time in milliseconds randomly added to delays between retries 
-   * to improve performance under high contention 
-   * (must be greater than or equal to 0, by default equals 0).
-   */
-  retryJitter?: number;
-  /** Prefix of a key. */
-  prefix?: string;
-}): Locker {
-  if (!(Number.isSafeInteger(ttl) && ttl > 0)) {
-    throw new Error(ErrInvalidTTL)
-  }
-  if (!(Number.isSafeInteger(retryCount) && retryCount >= 0)) {
-    throw new Error(ErrInvalidRetryCount)
-  }
-  if (!(Number.isSafeInteger(retryDelay) && retryDelay >= 0)) {
-    throw new Error(ErrInvalidRetryDelay)
-  }
-  if (!(Number.isSafeInteger(retryJitter) && retryJitter >= 0)) {
-    throw new Error(ErrInvalidRetryJitter)
-  }
-  return new LockerImpl(storage, ttl, retryCount, retryDelay, retryJitter, prefix)
-}
+/** ErrInvalidTTL is the error message returned when LockerFactory constructor receives invalid value of ttl. */
+export const ErrInvalidTTL = 'ttl must be an integer greater than zero'
+/** ErrInvalidRetryCount is the error message returned when LockerFactory constructor receives invalid value of retryCount. */
+export const ErrInvalidRetryCount = 'retryCount must be an integer greater than or equal to zero'
+/** ErrInvalidRetryDelay is the error message returned when LockerFactory constructor receives invalid value of retryDelay. */
+export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than or equal to zero'
+/** ErrInvalidRetryJitter is the error message returned when LockerFactory constructor receives invalid value of retryJitter. */
+export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
 
-class LockerImpl {
+/**
+ * LockerFactory defines parameters for creating new Locker.
+ */
+export class LockerFactory {
   private _storage: Storage;
   private _ttl: number;
   private _retryCount: number;
   private _retryDelay: number;
   private _retryJitter: number;
   private _prefix: string;
-  constructor(storage: Storage, ttl: number, retryCount: number, retryDelay: number, retryJitter: number, prefix: string) {
+  constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: {
+    /** TTL of key in milliseconds (must be greater than 0). */
+    ttl: number;
+    /** Maximum number of retries if key is locked 
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryCount?: number;
+    /** Delay in milliseconds between retries if key is locked
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryDelay?: number;
+    /** Maximum time in milliseconds randomly added to delays between retries 
+     * to improve performance under high contention 
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryJitter?: number;
+    /** Prefix of a key. */
+    prefix?: string;
+  }) {
+    if (!(Number.isSafeInteger(ttl) && ttl > 0)) {
+      throw new Error(ErrInvalidTTL)
+    }
+    if (!(Number.isSafeInteger(retryCount) && retryCount >= 0)) {
+      throw new Error(ErrInvalidRetryCount)
+    }
+    if (!(Number.isSafeInteger(retryDelay) && retryDelay >= 0)) {
+      throw new Error(ErrInvalidRetryDelay)
+    }
+    if (!(Number.isSafeInteger(retryJitter) && retryJitter >= 0)) {
+      throw new Error(ErrInvalidRetryJitter)
+    }
     this._storage = storage
     this._ttl = ttl
     this._retryCount = retryCount
@@ -97,12 +79,23 @@ class LockerImpl {
     this._retryJitter = retryJitter
     this._prefix = prefix
   }
-  createLock(key: string): Lock {
-    return new LockImpl(this._storage, this._ttl, this._retryCount, this._retryDelay, this._retryJitter, this._prefix + key)
+  /** Creates new Locker. */
+  createLocker(key: string): Locker {
+    return new Locker(this._storage, {
+      ttl: this._ttl,
+      retryCount: this._retryCount,
+      retryDelay: this._retryDelay,
+      retryJitter: this._retryJitter,
+      key: this._prefix + key
+    })
   }
 }
 
-class LockImpl {
+
+/**
+ * Locker implements distributed locking.
+ */
+export class Locker {
   private _storage: Storage;
   private _ttl: number;
   private _retryCount: number;
@@ -110,7 +103,13 @@ class LockImpl {
   private _retryJitter: number;
   private _key: string;
   private _token: string;
-  constructor(storage: Storage, ttl: number, retryCount: number, retryDelay: number, retryJitter: number, key: string) {
+  constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, key }: {
+    ttl: number;
+    retryCount: number;
+    retryDelay: number;
+    retryJitter: number;
+    key: string;
+  }) {
     this._storage = storage
     this._ttl = ttl
     this._retryCount = retryCount
@@ -119,12 +118,14 @@ class LockImpl {
     this._key = key
     this._token = ''
   }
+  /** Applies the lock, returns -1 on success, ttl in milliseconds on failure. */
   lock(): Promise<number> {
     if (this._token === '') {
       return this._create()
     }
     return this._update()
   }
+  /** Releases the lock, returns true on success. */
   unlock(): Promise<boolean> {
     const token = this._token
     if (token === '') {
