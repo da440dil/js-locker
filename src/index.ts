@@ -44,15 +44,18 @@ export class LockerFactory {
   constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: {
     /** TTL of key in milliseconds (must be greater than 0). */
     ttl: number;
-    /** Maximum number of retries if key is locked 
+    /** 
+     * Maximum number of retries if key is locked 
      * (must be greater than or equal to 0, by default equals 0).
      */
     retryCount?: number;
-    /** Delay in milliseconds between retries if key is locked
+    /** 
+     * Delay in milliseconds between retries if key is locked
      * (must be greater than or equal to 0, by default equals 0).
      */
     retryDelay?: number;
-    /** Maximum time in milliseconds randomly added to delays between retries 
+    /** 
+     * Maximum time in milliseconds randomly added to delays between retries 
      * to improve performance under high contention 
      * (must be greater than or equal to 0, by default equals 0).
      */
