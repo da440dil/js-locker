@@ -31,38 +31,36 @@ export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than 
 /** ErrInvalidRetryJitter is the error message returned when LockerFactory constructor receives invalid value of retryJitter. */
 export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
 
+export type Params = {
+  /** TTL of key in milliseconds (must be greater than 0). */
+  ttl: number;
+  /** 
+   * Maximum number of retries if key is locked 
+   * (must be greater than or equal to 0, by default equals 0).
+   */
+  retryCount?: number;
+  /** 
+   * Delay in milliseconds between retries if key is locked
+   * (must be greater than or equal to 0, by default equals 0).
+   */
+  retryDelay?: number;
+  /** 
+   * Maximum time in milliseconds randomly added to delays between retries 
+   * to improve performance under high contention 
+   * (must be greater than or equal to 0, by default equals 0).
+   */
+  retryJitter?: number;
+  /** Prefix of a key. */
+  prefix?: string;
+}
+
 /**
  * LockerFactory defines parameters for creating new Locker.
  */
 export class LockerFactory {
   private _storage: Storage;
-  private _ttl: number;
-  private _retryCount: number;
-  private _retryDelay: number;
-  private _retryJitter: number;
-  private _prefix: string;
-  constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: {
-    /** TTL of key in milliseconds (must be greater than 0). */
-    ttl: number;
-    /** 
-     * Maximum number of retries if key is locked 
-     * (must be greater than or equal to 0, by default equals 0).
-     */
-    retryCount?: number;
-    /** 
-     * Delay in milliseconds between retries if key is locked
-     * (must be greater than or equal to 0, by default equals 0).
-     */
-    retryDelay?: number;
-    /** 
-     * Maximum time in milliseconds randomly added to delays between retries 
-     * to improve performance under high contention 
-     * (must be greater than or equal to 0, by default equals 0).
-     */
-    retryJitter?: number;
-    /** Prefix of a key. */
-    prefix?: string;
-  }) {
+  private _params: Required<Params>;
+  constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: Params) {
     if (!(Number.isSafeInteger(ttl) && ttl > 0)) {
       throw new Error(ErrInvalidTTL)
     }
@@ -76,21 +74,17 @@ export class LockerFactory {
       throw new Error(ErrInvalidRetryJitter)
     }
     this._storage = storage
-    this._ttl = ttl
-    this._retryCount = retryCount
-    this._retryDelay = retryDelay
-    this._retryJitter = retryJitter
-    this._prefix = prefix
+    this._params = {
+      ttl: ttl,
+      retryCount: retryCount,
+      retryDelay: retryDelay,
+      retryJitter: retryJitter,
+      prefix: prefix
+    }
   }
   /** Creates new Locker. */
   createLocker(key: string): Locker {
-    return new Locker(this._storage, {
-      ttl: this._ttl,
-      retryCount: this._retryCount,
-      retryDelay: this._retryDelay,
-      retryJitter: this._retryJitter,
-      key: this._prefix + key
-    })
+    return new Locker(this._storage, this._params, key)
   }
 }
 
@@ -106,19 +100,13 @@ export class Locker {
   private _retryJitter: number;
   private _key: string;
   private _token: string;
-  constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, key }: {
-    ttl: number;
-    retryCount: number;
-    retryDelay: number;
-    retryJitter: number;
-    key: string;
-  }) {
+  constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string) {
     this._storage = storage
     this._ttl = ttl
     this._retryCount = retryCount
     this._retryDelay = retryDelay
     this._retryJitter = retryJitter
-    this._key = key
+    this._key = prefix + key
     this._token = ''
   }
   /** Applies the lock, returns -1 on success, ttl in milliseconds on failure. */
@@ -151,7 +139,7 @@ export class Locker {
       return v
     }
     counter--
-    await sleep(Math.max(0, this._retryDelay + Math.floor((Math.random() * 2 - 1) * this._retryJitter)))
+    await sleep(createDelay(this._retryDelay, this._retryJitter))
     return this._insert(token, counter)
   }
   private async _update(): Promise<number> {
@@ -171,6 +159,13 @@ function createToken(): Promise<string> {
       resolve(buf.toString('base64'))
     })
   })
+}
+
+function createDelay(retryDelay: number, retryJitter: number): number {
+  if (retryJitter === 0) {
+    return retryDelay
+  }
+  return Math.max(0, retryDelay + Math.floor((Math.random() * 2 - 1) * retryJitter))
 }
 
 function sleep(time: number): Promise<void> {

@@ -27,38 +27,35 @@ export declare const ErrInvalidRetryCount = "retryCount must be an integer great
 export declare const ErrInvalidRetryDelay = "retryDelay must be an integer greater than or equal to zero";
 /** ErrInvalidRetryJitter is the error message returned when LockerFactory constructor receives invalid value of retryJitter. */
 export declare const ErrInvalidRetryJitter = "retryJitter must be an integer greater than or equal to zero";
+export declare type Params = {
+    /** TTL of key in milliseconds (must be greater than 0). */
+    ttl: number;
+    /**
+     * Maximum number of retries if key is locked
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryCount?: number;
+    /**
+     * Delay in milliseconds between retries if key is locked
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryDelay?: number;
+    /**
+     * Maximum time in milliseconds randomly added to delays between retries
+     * to improve performance under high contention
+     * (must be greater than or equal to 0, by default equals 0).
+     */
+    retryJitter?: number;
+    /** Prefix of a key. */
+    prefix?: string;
+};
 /**
  * LockerFactory defines parameters for creating new Locker.
  */
 export declare class LockerFactory {
     private _storage;
-    private _ttl;
-    private _retryCount;
-    private _retryDelay;
-    private _retryJitter;
-    private _prefix;
-    constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: {
-        /** TTL of key in milliseconds (must be greater than 0). */
-        ttl: number;
-        /**
-         * Maximum number of retries if key is locked
-         * (must be greater than or equal to 0, by default equals 0).
-         */
-        retryCount?: number;
-        /**
-         * Delay in milliseconds between retries if key is locked
-         * (must be greater than or equal to 0, by default equals 0).
-         */
-        retryDelay?: number;
-        /**
-         * Maximum time in milliseconds randomly added to delays between retries
-         * to improve performance under high contention
-         * (must be greater than or equal to 0, by default equals 0).
-         */
-        retryJitter?: number;
-        /** Prefix of a key. */
-        prefix?: string;
-    });
+    private _params;
+    constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: Params);
     /** Creates new Locker. */
     createLocker(key: string): Locker;
 }
@@ -73,13 +70,7 @@ export declare class Locker {
     private _retryJitter;
     private _key;
     private _token;
-    constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, key }: {
-        ttl: number;
-        retryCount: number;
-        retryDelay: number;
-        retryJitter: number;
-        key: string;
-    });
+    constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string);
     /** Applies the lock, returns -1 on success, ttl in milliseconds on failure. */
     lock(): Promise<number>;
     /** Releases the lock, returns true on success. */
