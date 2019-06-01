@@ -6,29 +6,41 @@ Distributed locking with pluggable storage.
 
 ```javascript
 import { createClient } from 'redis'
-import { LockerFactory, Locker } from '@da440dil/js-locker'
+import { Locker, Lock, LockerError } from '@da440dil/js-locker'
 import { Storage } from '@da440dil/js-locker/lib/redis'
 
-// Wrapper to log output of Locker methods call
+// Decorator to log output of Locker methods call
 class MyLocker {
-  private _locker: Locker;
-  private _id: number;
-  constructor(locker: Locker, id: number) {
+  private _locker: Locker
+  private _key: string
+  private _id: number
+  private _lock: Lock | null
+  constructor(locker: Locker, key: string, id: number) {
     this._locker = locker
+    this._key = key
     this._id = id
+    this._lock = null
   }
-  async lock() {
-    const v = await this._locker.lock()
-    if (v === -1) {
+  public async lock(): Promise<void> {
+    try {
+      this._lock = await this._locker.lock(this._key)
       console.log(`Locker#${this._id} has locked the key`)
-    } else {
-      console.log(`Locker#${this._id} has failed to lock the key, retry after ${v} ms`)
+    } catch (err) {
+      if (err instanceof LockerError) {
+        console.log(`Locker#${this._id} has failed to lock the key, retry after ${err.ttl} ms`)
+      } else {
+        throw err
+      }
     }
   }
-  async unlock() {
-    const ok = await this._locker.unlock()
+  public async unlock(): Promise<void> {
+    if (this._lock === null) {
+      return
+    }
+    const ok = await this._lock.unlock()
     if (ok) {
       console.log(`Locker#${this._id} has unlocked the key`)
+      this._lock = null
     } else {
       console.log(`Locker#${this._id} has failed to unlock the key`)
     }
@@ -40,15 +52,14 @@ class MyLocker {
   const ttl = 100
   const key = 'key'
   // Create Redis client
-  const client = createClient({ db: db })
+  const client = createClient({ db })
   // Create Redis storage
   const storage = new Storage(client)
-  const params = { ttl: ttl }
-  const factory = new LockerFactory(storage, params)
+  const params = { ttl }
   // Create first locker
-  const locker1 = new MyLocker(factory.createLocker(key), 1)
+  const locker1 = new MyLocker(new Locker(storage, params), key, 1)
   // Create second locker
-  const locker2 = new MyLocker(factory.createLocker(key), 2)
+  const locker2 = new MyLocker(new Locker(storage, params), key, 2)
 
   await locker1.lock() // Locker#1 has locked the key
   await locker2.lock() // Locker#2 has failed to lock the key, retry after 99 ms

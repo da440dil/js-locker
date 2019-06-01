@@ -2,12 +2,15 @@
   "name": "@da440dil/js-locker",
   "version": "0.0.2",
   "description": "Distributed locking with pluggable storage",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/locker.js",
   "scripts": {
-    "test": "mocha -r ts-node/register src/**/*.spec.ts -b",
+    "test": "jest --config jest.config.json --runInBand",
+    "test:v": "jest --config jest.config.json --runInBand --verbose",
+    "test:f": "jest --config jest.config.json --runInBand --",
+    "test:c": "jest --config jest.config.json --runInBand --coverage",
+    "lint": "tslint -p tsconfig.json -c tslint.json",
     "build": "tsc -p tsconfig.build.json",
-    "flush": "node -e \"child_process.exec(os.platform().startsWith('win') ? 'rmdir lib /s /q' : 'rm lib -rf')\"",
+    "purge": "rimraf lib",
     "preversion": "npm test",
     "example": "ts-node src/example.ts"
   },
@@ -19,14 +22,14 @@
     "redis": "2.8.0"
   },
   "devDependencies": {
-    "@types/mocha": "5.2.6",
-    "@types/node": "11.13.4",
-    "@types/redis": "2.8.10",
-    "@types/sinon": "7.0.11",
-    "mocha": "6.1.4",
-    "sinon": "7.3.1",
-    "ts-node": "8.1.0",
-    "typescript": "3.4.3"
+    "@types/jest": "^24.0.13",
+    "@types/node": "^12.0.3",
+    "@types/redis": "2.8.13",
+    "jest": "^24.8.0",
+    "ts-jest": "^24.0.2",
+    "ts-node": "^8.2.0",
+    "tslint": "^5.16.0",
+    "typescript": "^3.5.1"
   },
   "repository": {
     "type": "git",
