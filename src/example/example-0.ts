@@ -1,13 +1,6 @@
-# js-locker
-
-Distributed locking with pluggable storage.
-
-## Example
-
-```javascript
 import { createClient } from 'redis'
-import { Locker, Lock, LockerError } from '@da440dil/js-locker'
-import { Storage } from '@da440dil/js-locker/lib/redis'
+import { Locker, Lock, LockerError } from '../locker'
+import { Storage } from '../redis'
 
 (async function main() {
   const db = 10
@@ -41,4 +34,3 @@ import { Storage } from '@da440dil/js-locker/lib/redis'
   // Close Redis connection
   client.quit()
 })()
-```

@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "purge": "rimraf lib",
     "preversion": "npm test",
-    "example": "ts-node src/example.ts"
+    "example": "ts-node src/example/example-0.ts && ts-node src/example/example-1.ts"
   },
   "keywords": [],
   "author": "",

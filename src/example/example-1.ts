@@ -1,8 +1,8 @@
 import { createClient } from 'redis'
-import { Locker, Lock, LockerError } from './locker'
-import { Storage } from './redis'
+import { Locker, Lock, LockerError } from '../locker'
+import { Storage } from '../redis'
 
-// Wrapper to log output of Locker methods call
+// Decorator to log output of Locker methods call
 class MyLocker {
   private _locker: Locker
   private _key: string
