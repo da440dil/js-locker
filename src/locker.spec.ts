@@ -43,9 +43,12 @@ it('should lock', async () => {
 
 it('should throw LockerError if lock failed', async () => {
   const ttl = 42
+  const err = new LockerError(ttl)
+  expect(err.ttl).toBe(ttl)
+
   const insert = jest.fn().mockResolvedValue(ttl)
   storage.insert = insert
 
   const locker = new Locker(storage, { ttl: 1 })
-  await expect(locker.lock(key)).rejects.toThrow(new LockerError(ttl))
+  await expect(locker.lock(key)).rejects.toThrow(err)
 })

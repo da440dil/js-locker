@@ -42,6 +42,7 @@ export class LockerError extends Error {
     super(ErrConflict)
     this._ttl = ttl
   }
+  /** TTL of a key in milliseconds. */
   get ttl() {
     return this._ttl
   }
@@ -50,7 +51,7 @@ export class LockerError extends Error {
 /** Parameters for creating new Lock */
 export interface Params {
   /**
-   * TTL of key in milliseconds.
+   * TTL of a key in milliseconds.
    * Must be greater than 0.
    */
   ttl: number
@@ -105,7 +106,7 @@ export class Locker {
   public createLock(key: string): Lock {
     return new Lock(this._storage, this._params, key)
   }
-  /** Applies the lock. */
+  /** Applies the lock. Throws LockerError on failure. */
   public async lock(key: string): Promise<Lock> {
     const lock = this.createLock(key)
     const ttl = await lock.lock()
