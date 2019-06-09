@@ -1,0 +1,6 @@
+src/
+test_coverage/
+tsconfig.json
+tsconfig.build.json
+tslint.json
+jest.config.json
