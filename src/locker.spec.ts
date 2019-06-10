@@ -9,7 +9,7 @@ import {
   LockerError,
 } from './locker'
 
-const storage = {} as Storage
+const storage = {} as jest.Mocked<Storage>
 const key = 'key'
 
 it('should throw Error if got invalid ttl parameter', () => {
@@ -34,8 +34,7 @@ it('should create Lock', () => {
 })
 
 it('should lock', async () => {
-  const insert = jest.fn().mockResolvedValue(-1)
-  storage.insert = insert
+  storage.insert = jest.fn().mockResolvedValue(-1)
 
   const locker = new Locker(storage, { ttl: 1 })
   await expect(locker.lock(key)).resolves.toBeInstanceOf(Lock)
@@ -46,8 +45,7 @@ it('should throw LockerError if lock failed', async () => {
   const err = new LockerError(ttl)
   expect(err.ttl).toBe(ttl)
 
-  const insert = jest.fn().mockResolvedValue(ttl)
-  storage.insert = insert
+  storage.insert = jest.fn().mockResolvedValue(ttl)
 
   const locker = new Locker(storage, { ttl: 1 })
   await expect(locker.lock(key)).rejects.toThrow(err)
