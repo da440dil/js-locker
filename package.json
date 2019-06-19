@@ -1,8 +1,8 @@
 {
   "name": "@da440dil/js-locker",
   "version": "0.0.5",
-  "description": "Distributed locking with pluggable storage",
-  "main": "lib/locker.js",
+  "description": "Distributed locking using Redis",
+  "main": "lib/index.js",
   "scripts": {
     "test": "jest --config jest.config.json --runInBand",
     "test:v": "jest --config jest.config.json --runInBand --verbose",
@@ -11,8 +11,8 @@
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "build": "tsc -p tsconfig.build.json",
     "purge": "rimraf lib",
-    "preversion": "npm test",
-    "prepublishOnly": "npm run build",
+    "preversion": "npm run lint && npm run test",
+    "prepublishOnly": "npm run purge && npm run build",
     "file": "ts-node --"
   },
   "keywords": [],

@@ -1,17 +1,17 @@
 import { createClient, RedisClient } from 'redis'
-import { Storage } from './redis'
+import { Gateway } from './redis'
 
 const redisUrl = 'redis://127.0.0.1:6379/10'
 let client: RedisClient
 
-const k = 'k'
-const v = 'v'
-const ttl = 1000
-let storage: Storage
+const key = 'key'
+const value = 'value'
+const ttl = 500
+let gateway: Gateway
 
 beforeAll(async () => {
   client = createClient({ url: redisUrl })
-  await delKey(k)
+  await delKey()
 })
 
 afterAll(() => {
@@ -19,52 +19,73 @@ afterAll(() => {
 })
 
 beforeEach(() => {
-  storage = new Storage(client)
+  gateway = new Gateway(client)
 })
 
 afterEach(async () => {
-  await delKey(k)
+  await delKey()
 })
 
 it('should set key value and ttl of key if key value not exists', async () => {
-  const t1 = await storage.insert(k, v, ttl)
+  const t1 = await gateway.insert(key, value, ttl)
   expect(t1).toBe(-1)
-  const r = await getKey(k)
-  expect(r.v).toBe(v)
-  expect(r.ttl > 0 && r.ttl <= ttl).toBe(true)
+  const r1 = await getKey()
+  expect(r1.v).toBe(value)
+  expect(r1.ttl).toBeGreaterThan(0)
+  expect(r1.ttl).toBeLessThanOrEqual(ttl)
 
-  const t2 = await storage.insert(k, v, ttl)
-  expect(t2 > 0 && t2 <= ttl).toBe(true)
+  const t2 = await gateway.insert(key, value, ttl)
+  expect(t2).toBeGreaterThan(0)
+  expect(t2).toBeLessThanOrEqual(ttl)
 
   await sleep(ttl)
-  const t3 = await storage.insert(k, v, ttl)
+  const r = await getKey()
+  expect(r.v).toBe(null)
+  expect(r.ttl).toBe(-2)
+
+  const t3 = await gateway.insert(key, value, ttl)
   expect(t3).toBe(-1)
+  const r3 = await getKey()
+  expect(r3.v).toBe(value)
+  expect(r3.ttl).toBeGreaterThan(0)
+  expect(r3.ttl).toBeLessThanOrEqual(ttl)
 })
 
 it('should update ttl of key if key value equals value', async () => {
-  const t1 = await storage.upsert(k, v, ttl)
+  const t1 = await gateway.upsert(key, value, ttl)
   expect(t1).toBe(-1)
-  const r = await getKey(k)
-  expect(r.v).toBe(v)
-  expect(r.ttl > 0 && r.ttl <= ttl).toBe(true)
+  const r1 = await getKey()
+  expect(r1.v).toBe(value)
+  expect(r1.ttl).toBeGreaterThan(0)
+  expect(r1.ttl).toBeLessThanOrEqual(ttl)
 
-  const t2 = await storage.upsert(k, v, ttl)
+  const t2 = await gateway.upsert(key, value, ttl)
   expect(t2).toBe(-1)
 
-  const t3 = await storage.upsert(k, v + v, ttl)
-  expect(t3 > 0 && t3 <= ttl).toBe(true)
+  const t3 = await gateway.upsert(key, value + value, ttl)
+  expect(t3).toBeGreaterThan(0)
+  expect(t3).toBeLessThanOrEqual(ttl)
+
+  await sleep(ttl)
+  const r = await getKey()
+  expect(r.v).toBe(null)
+  expect(r.ttl).toBe(-2)
 })
 
 it('should delete key if key value exists', async () => {
-  await storage.insert(k, v, ttl)
-  expect(await storage.remove(k, v)).toBe(true)
-  const r = await getKey(k)
+  await gateway.insert(key, value, ttl)
+
+  const b1 = await gateway.remove(key, value)
+  expect(b1).toBe(true)
+  const r = await getKey()
   expect(r.v).toBe(null)
   expect(r.ttl).toBe(-2)
-  expect(await storage.remove(k, v)).toBe(false)
+
+  const b2 = await gateway.remove(key, value)
+  expect(b2).toBe(false)
 })
 
-function delKey(key: string): Promise<void> {
+function delKey(): Promise<void> {
   return new Promise((resolve, reject) => {
     client.del(key, (err) => {
       if (err) {
@@ -75,10 +96,7 @@ function delKey(key: string): Promise<void> {
   })
 }
 
-function getKey(key: string): Promise<{
-  v: string;
-  ttl: number;
-}> {
+function getKey(): Promise<{ v: string; ttl: number; }> {
   return new Promise((resolve, reject) => {
     client.multi().get(key).pttl(key).exec((err, res) => {
       if (err) {

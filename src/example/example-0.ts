@@ -1,25 +1,18 @@
 import { createClient } from 'redis'
-import { Locker, Lock, LockerError } from '../locker'
-import { Storage } from '../redis'
+import Locker from '..'
 
 (async function main() {
-  const db = 10
+  const client = createClient()
   const ttl = 100
+  const locker = Locker(client, { ttl })
   const key = 'key'
-  // Create Redis client
-  const client = createClient({ db })
-  // Create Redis storage
-  const storage = new Storage(client)
-  const params = { ttl }
-  // Create locker
-  const locker = new Locker(storage, params)
 
-  let lock: Lock
+  let lock: Locker.Lock
   try {
     lock = await locker.lock(key)
     console.log('Locker has locked the key')
   } catch (err) {
-    if (err instanceof LockerError) {
+    if (err instanceof Locker.Error) {
       console.log('Locker has failed to lock the key, retry after %d ms', err.ttl)
     }
     throw err
@@ -31,6 +24,5 @@ import { Storage } from '../redis'
     console.log('Locker has failed to unlock the key')
   }
 
-  // Close Redis connection
   client.quit()
 })()

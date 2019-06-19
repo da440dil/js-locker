@@ -1,12 +1,9 @@
 import { RedisClient } from 'redis'
 
-/**
- * Error message returned when Redis command returns response of invalid type.
- */
+/** Error message which is thrown when Redis command returns response of invalid type. */
 export const ErrInvalidResponse = 'Invalid response'
-/**
- * Error message returned when Redis key exists and has no TTL.
- */
+
+/** Error message which is thrown when Redis key exists and has no TTL. */
 export const ErrKeyNameClash = 'Key name clash'
 
 const INSERT = '' +
@@ -30,16 +27,11 @@ const REMOVE = '' +
   'return redis.call("del", KEYS[1]) ' +
   'end'
 
-/** Implements Locker#Storage */
-export class Storage {
+export class Gateway {
   private _client: RedisClient
   constructor(client: RedisClient) {
     this._client = client
   }
-  /**
-   * Inserts key value and ttl of key if key value not exists.
-   * Returns -1 on success, ttl in milliseconds on failure.
-   */
   public insert(key: string, value: string, ttl: number): Promise<number> {
     return new Promise((resolve, reject) => {
       this._client.eval(INSERT, 1, key, value, ttl, (err, res) => {
@@ -49,7 +41,7 @@ export class Storage {
         if (res == null) {
           return resolve(-1)
         }
-        if (typeof res !== 'number') {
+        if (Number(res) !== res) {
           return reject(new Error(ErrInvalidResponse))
         }
         if (res === -1) {
@@ -59,11 +51,6 @@ export class Storage {
       })
     })
   }
-  /**
-   * Inserts key value and ttl of key if key value not exists.
-   * Updates ttl of key if key value equals input value.
-   * Returns -1 on success, ttl in milliseconds on failure.
-   */
   public upsert(key: string, value: string, ttl: number): Promise<number> {
     return new Promise((resolve, reject) => {
       this._client.eval(UPSERT, 1, key, value, ttl, (err, res) => {
@@ -73,7 +60,7 @@ export class Storage {
         if (res == null) {
           return resolve(-1)
         }
-        if (typeof res !== 'number') {
+        if (Number(res) !== res) {
           return reject(new Error(ErrInvalidResponse))
         }
         if (res === -1) {
@@ -83,10 +70,6 @@ export class Storage {
       })
     })
   }
-  /**
-   * Removes key if key value equals input value.
-   * Returns true on success, false on failure.
-   */
   public remove(key: string, value: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       this._client.eval(REMOVE, 1, key, value, (err, res) => {
@@ -96,7 +79,7 @@ export class Storage {
         if (res == null) {
           return resolve(false)
         }
-        if (typeof res !== 'number') {
+        if (Number(res) !== res) {
           return reject(new Error(ErrInvalidResponse))
         }
         resolve(res === 1)

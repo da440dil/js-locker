@@ -1,32 +1,25 @@
 # js-locker
 
-Distributed locking with pluggable storage.
+Distributed locking using [Redis](https://redis.io/).
 
 ## Example
 
 ```javascript
 import { createClient } from 'redis'
-import { Locker, Lock, LockerError } from '@da440dil/js-locker'
-import { Storage } from '@da440dil/js-locker/lib/redis'
+import Locker from '@da440dil/js-locker'
 
 (async function main() {
-  const db = 10
+  const client = createClient()
   const ttl = 100
+  const locker = Locker(client, { ttl })
   const key = 'key'
-  // Create Redis client
-  const client = createClient({ db })
-  // Create Redis storage
-  const storage = new Storage(client)
-  const params = { ttl }
-  // Create locker
-  const locker = new Locker(storage, params)
 
-  let lock: Lock
+  let lock: Locker.Lock
   try {
     lock = await locker.lock(key)
     console.log('Locker has locked the key')
   } catch (err) {
-    if (err instanceof LockerError) {
+    if (err instanceof Locker.Error) {
       console.log('Locker has failed to lock the key, retry after %d ms', err.ttl)
     }
     throw err
@@ -38,7 +31,6 @@ import { Storage } from '@da440dil/js-locker/lib/redis'
     console.log('Locker has failed to unlock the key')
   }
 
-  // Close Redis connection
   client.quit()
 })()
 ```

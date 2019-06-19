@@ -1,9 +1,7 @@
 import { randomBytes } from 'crypto'
 
-/**
- * Storage to store a lock state.
- */
-export interface Storage {
+/** Gateway to storage to store a lock state. */
+export interface Gateway {
   /**
    * Inserts key value and ttl of key if key value not exists.
    * Returns -1 on success, ttl in milliseconds on failure.
@@ -22,20 +20,22 @@ export interface Storage {
   remove(key: string, value: string): Promise<boolean>
 }
 
-/** Error message returned when Locker constructor receives invalid value of ttl. */
+/** Error message which is thrown when Locker constructor receives invalid value of ttl. */
 export const ErrInvalidTTL = 'ttl must be an integer greater than zero'
-/** Error message returned when Locker constructor receives invalid value of retryCount. */
+
+/** Error message which is thrown when Locker constructor receives invalid value of retryCount. */
 export const ErrInvalidRetryCount = 'retryCount must be an integer greater than or equal to zero'
-/** Error message returned when Locker constructor receives invalid value of retryDelay. */
+
+/** Error message which is thrown when Locker constructor receives invalid value of retryDelay. */
 export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than or equal to zero'
-/** Error message returned when Locker constructor receives invalid value of retryJitter. */
+
+/** Error message which is thrown when Locker constructor receives invalid value of retryJitter. */
 export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
 
-/** Error message returned when lock failed. */
+/** Error message which is thrown when lock failed. */
 export const ErrConflict = 'Conflict'
-/**
- * Error returned when lock failed.
- */
+
+/** Error which is thrown when lock failed. */
 export class LockerError extends Error {
   private _ttl: number
   constructor(ttl: number) {
@@ -48,39 +48,28 @@ export class LockerError extends Error {
   }
 }
 
-/** Parameters for creating new Lock */
+/** Parameters for creating new Lock. */
 export interface Params {
-  /**
-   * TTL of a key in milliseconds.
-   * Must be greater than 0.
-   */
+  /** TTL of a key in milliseconds. Must be greater than 0. */
   ttl: number
-  /**
-   * Maximum number of retries if key is locked.
-   * Must be greater than or equal to 0, by default equals 0.
-   */
+  /** Maximum number of retries if key is locked. Must be greater than or equal to 0. By default equals 0. */
   retryCount?: number
-  /**
-   * Delay in milliseconds between retries if key is locked.
-   * Must be greater than or equal to 0, by default equals 0.
-   */
+  /** Delay in milliseconds between retries if key is locked. Must be greater than or equal to 0. By default equals 0. */
   retryDelay?: number
   /**
    * Maximum time in milliseconds randomly added to delays between retries to improve performance under high contention.
-   * Must be greater than or equal to 0, by default equals 0.
+   * Must be greater than or equal to 0. By default equals 0.
    */
   retryJitter?: number
-  /** Prefix of a key. */
+  /** Prefix of a key. By default empty string. */
   prefix?: string
 }
 
-/**
- * Locker defines parameters for creating new Lock.
- */
+/** Locker defines parameters for creating new Lock. */
 export class Locker {
-  private _storage: Storage
+  private _gateway: Gateway
   private _params: Required<Params>
-  constructor(storage: Storage, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: Params) {
+  constructor(gateway: Gateway, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: Params) {
     if (!(Number.isSafeInteger(ttl) && ttl > 0)) {
       throw new Error(ErrInvalidTTL)
     }
@@ -93,7 +82,7 @@ export class Locker {
     if (!(Number.isSafeInteger(retryJitter) && retryJitter >= 0)) {
       throw new Error(ErrInvalidRetryJitter)
     }
-    this._storage = storage
+    this._gateway = gateway
     this._params = {
       ttl,
       retryCount,
@@ -104,9 +93,9 @@ export class Locker {
   }
   /** Creates new Lock. */
   public createLock(key: string): Lock {
-    return new Lock(this._storage, this._params, key)
+    return new Lock(this._gateway, this._params, key)
   }
-  /** Applies the lock. Throws LockerError on failure. */
+  /** Applies the lock. Throws LockerError. */
   public async lock(key: string): Promise<Lock> {
     const lock = this.createLock(key)
     const ttl = await lock.lock()
@@ -117,18 +106,16 @@ export class Locker {
   }
 }
 
-/**
- * Lock implements distributed locking.
- */
+/** Lock implements distributed locking. */
 export class Lock {
-  private _storage: Storage
+  private _storage: Gateway
   private _ttl: number
   private _retryCount: number
   private _retryDelay: number
   private _retryJitter: number
   private _key: string
   private _token: string
-  constructor(storage: Storage, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string) {
+  constructor(storage: Gateway, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string) {
     this._storage = storage
     this._ttl = ttl
     this._retryCount = retryCount
