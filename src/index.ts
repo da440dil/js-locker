@@ -1,18 +1,14 @@
 import { RedisClient } from 'redis'
-import { Gateway } from './redis'
-import { Locker, Lock, LockerError, Params } from './locker'
+import { Gateway as RedisGateway } from './redis'
+import { Gateway, Params, Locker, Lock, TTLError } from './locker'
 
-export { Gateway, Locker, Lock, LockerError }
+export { Gateway, Params, Locker, Lock, TTLError }
 
 /**
  * Creates new Locker.
  * @param client Redis client.
  * @param params Locker params.
  */
-export default function createLocker(client: RedisClient, params: Params): Locker {
-  return new Locker(new Gateway(client), params)
+export function createLocker(client: RedisClient, params: Params): Locker {
+  return new Locker(new RedisGateway(client), params)
 }
-
-createLocker.Locker = Locker
-createLocker.Lock = Lock
-createLocker.Error = LockerError

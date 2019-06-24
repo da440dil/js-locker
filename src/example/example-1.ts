@@ -1,13 +1,13 @@
 import { createClient } from 'redis'
-import Locker from '..'
+import { createLocker, Locker, Lock, TTLError } from '..'
 
 // Decorator to log output of Locker methods call
 class MyLocker {
-  private _locker: Locker.Locker
+  private _locker: Locker
   private _key: string
   private _id: number
-  private _lock: Locker.Lock | null
-  constructor(locker: Locker.Locker, key: string, id: number) {
+  private _lock: Lock | null
+  constructor(locker: Locker, key: string, id: number) {
     this._locker = locker
     this._key = key
     this._id = id
@@ -18,7 +18,7 @@ class MyLocker {
       this._lock = await this._locker.lock(this._key)
       console.log(`Locker#${this._id} has locked the key`)
     } catch (err) {
-      if (err instanceof Locker.Error) {
+      if (err instanceof TTLError) {
         console.log(`Locker#${this._id} has failed to lock the key, retry after ${err.ttl} ms`)
       } else {
         throw err
@@ -41,11 +41,10 @@ class MyLocker {
 
 (async function main() {
   const client = createClient()
-  const ttl = 100
-  const params = { ttl }
+  const params = { ttl: 100 }
   const key = 'key'
-  const locker1 = new MyLocker(Locker(client, params), key, 1)
-  const locker2 = new MyLocker(Locker(client, params), key, 2)
+  const locker1 = new MyLocker(createLocker(client, params), key, 1)
+  const locker2 = new MyLocker(createLocker(client, params), key, 2)
 
   await locker1.lock()   // Locker#1 has locked the key
   await locker2.lock()   // Locker#2 has failed to lock the key, retry after 99 ms

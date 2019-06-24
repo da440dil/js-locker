@@ -18,71 +18,73 @@ afterAll(() => {
   client.quit()
 })
 
-beforeEach(() => {
-  gateway = new Gateway(client)
-})
+describe('Gateway', () => {
+  beforeEach(() => {
+    gateway = new Gateway(client)
+  })
 
-afterEach(async () => {
-  await delKey()
-})
+  afterEach(async () => {
+    await delKey()
+  })
 
-it('should set key value and ttl of key if key value not exists', async () => {
-  const t1 = await gateway.insert(key, value, ttl)
-  expect(t1).toBe(-1)
-  const r1 = await getKey()
-  expect(r1.v).toBe(value)
-  expect(r1.ttl).toBeGreaterThan(0)
-  expect(r1.ttl).toBeLessThanOrEqual(ttl)
+  it('should set key value and ttl of key if key value not exists', async () => {
+    const t1 = await gateway.insert(key, value, ttl)
+    expect(t1).toBe(-1)
+    const r1 = await getKey()
+    expect(r1.v).toBe(value)
+    expect(r1.ttl).toBeGreaterThan(0)
+    expect(r1.ttl).toBeLessThanOrEqual(ttl)
 
-  const t2 = await gateway.insert(key, value, ttl)
-  expect(t2).toBeGreaterThan(0)
-  expect(t2).toBeLessThanOrEqual(ttl)
+    const t2 = await gateway.insert(key, value, ttl)
+    expect(t2).toBeGreaterThan(0)
+    expect(t2).toBeLessThanOrEqual(ttl)
 
-  await sleep(ttl)
-  const r = await getKey()
-  expect(r.v).toBe(null)
-  expect(r.ttl).toBe(-2)
+    await sleep(ttl)
+    const r = await getKey()
+    expect(r.v).toBe(null)
+    expect(r.ttl).toBe(-2)
 
-  const t3 = await gateway.insert(key, value, ttl)
-  expect(t3).toBe(-1)
-  const r3 = await getKey()
-  expect(r3.v).toBe(value)
-  expect(r3.ttl).toBeGreaterThan(0)
-  expect(r3.ttl).toBeLessThanOrEqual(ttl)
-})
+    const t3 = await gateway.insert(key, value, ttl)
+    expect(t3).toBe(-1)
+    const r3 = await getKey()
+    expect(r3.v).toBe(value)
+    expect(r3.ttl).toBeGreaterThan(0)
+    expect(r3.ttl).toBeLessThanOrEqual(ttl)
+  })
 
-it('should update ttl of key if key value equals value', async () => {
-  const t1 = await gateway.upsert(key, value, ttl)
-  expect(t1).toBe(-1)
-  const r1 = await getKey()
-  expect(r1.v).toBe(value)
-  expect(r1.ttl).toBeGreaterThan(0)
-  expect(r1.ttl).toBeLessThanOrEqual(ttl)
+  it('should update ttl of key if key value equals value', async () => {
+    const t1 = await gateway.upsert(key, value, ttl)
+    expect(t1).toBe(-1)
+    const r1 = await getKey()
+    expect(r1.v).toBe(value)
+    expect(r1.ttl).toBeGreaterThan(0)
+    expect(r1.ttl).toBeLessThanOrEqual(ttl)
 
-  const t2 = await gateway.upsert(key, value, ttl)
-  expect(t2).toBe(-1)
+    const t2 = await gateway.upsert(key, value, ttl)
+    expect(t2).toBe(-1)
 
-  const t3 = await gateway.upsert(key, value + value, ttl)
-  expect(t3).toBeGreaterThan(0)
-  expect(t3).toBeLessThanOrEqual(ttl)
+    const t3 = await gateway.upsert(key, value + value, ttl)
+    expect(t3).toBeGreaterThan(0)
+    expect(t3).toBeLessThanOrEqual(ttl)
 
-  await sleep(ttl)
-  const r = await getKey()
-  expect(r.v).toBe(null)
-  expect(r.ttl).toBe(-2)
-})
+    await sleep(ttl)
+    const r = await getKey()
+    expect(r.v).toBe(null)
+    expect(r.ttl).toBe(-2)
+  })
 
-it('should delete key if key value exists', async () => {
-  await gateway.insert(key, value, ttl)
+  it('should delete key if key value exists', async () => {
+    await gateway.insert(key, value, ttl)
 
-  const b1 = await gateway.remove(key, value)
-  expect(b1).toBe(true)
-  const r = await getKey()
-  expect(r.v).toBe(null)
-  expect(r.ttl).toBe(-2)
+    const b1 = await gateway.remove(key, value)
+    expect(b1).toBe(true)
+    const r = await getKey()
+    expect(r.v).toBe(null)
+    expect(r.ttl).toBe(-2)
 
-  const b2 = await gateway.remove(key, value)
-  expect(b2).toBe(false)
+    const b2 = await gateway.remove(key, value)
+    expect(b2).toBe(false)
+  })
 })
 
 function delKey(): Promise<void> {

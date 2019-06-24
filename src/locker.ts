@@ -32,22 +32,6 @@ export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than 
 /** Error message which is thrown when Locker constructor receives invalid value of retryJitter. */
 export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
 
-/** Error message which is thrown when lock failed. */
-export const ErrConflict = 'Conflict'
-
-/** Error which is thrown when lock failed. */
-export class LockerError extends Error {
-  private _ttl: number
-  constructor(ttl: number) {
-    super(ErrConflict)
-    this._ttl = ttl
-  }
-  /** TTL of a key in milliseconds. */
-  get ttl() {
-    return this._ttl
-  }
-}
-
 /** Parameters for creating new Lock. */
 export interface Params {
   /** TTL of a key in milliseconds. Must be greater than 0. */
@@ -95,14 +79,30 @@ export class Locker {
   public createLock(key: string): Lock {
     return new Lock(this._gateway, this._params, key)
   }
-  /** Applies the lock. Throws LockerError. */
+  /** Creates and applies new Lock. Throws TTLError if Lock failed to lock the key. */
   public async lock(key: string): Promise<Lock> {
     const lock = this.createLock(key)
     const ttl = await lock.lock()
     if (ttl !== -1) {
-      throw new LockerError(ttl)
+      throw new TTLError(ttl)
     }
     return lock
+  }
+}
+
+/** Error message which is thrown when lock failed. */
+export const ErrConflict = 'Conflict'
+
+/** Error which is thrown when Lock failed to lock the key. */
+export class TTLError extends Error {
+  private _ttl: number
+  constructor(ttl: number) {
+    super(ErrConflict)
+    this._ttl = ttl
+  }
+  /** TTL of a key in milliseconds. */
+  get ttl() {
+    return this._ttl
   }
 }
 

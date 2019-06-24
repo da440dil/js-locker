@@ -1,21 +1,21 @@
 import { createClient } from 'redis'
-import Locker from '..'
+import { createLocker, TTLError } from '..'
 
 (async function main() {
   const client = createClient()
-  const ttl = 100
-  const locker = Locker(client, { ttl })
+  const locker = createLocker(client, { ttl: 100 })
   const key = 'key'
 
-  let lock: Locker.Lock
+  const lock = await locker.lock(key)
+  console.log('Locker has locked the key')
   try {
-    lock = await locker.lock(key)
-    console.log('Locker has locked the key')
+    await locker.lock(key)
   } catch (err) {
-    if (err instanceof Locker.Error) {
+    if (err instanceof TTLError) {
       console.log('Locker has failed to lock the key, retry after %d ms', err.ttl)
+    } else {
+      throw err
     }
-    throw err
   }
   const ok = await lock.unlock()
   if (ok) {
