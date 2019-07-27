@@ -3,24 +3,28 @@ import { randomBytes } from 'crypto'
 /** Gateway to storage to store a lock state. */
 export interface Gateway {
   /**
-   * Inserts key value and ttl of key if key value not exists.
-   * Returns -1 on success, ttl in milliseconds on failure.
+   * Sets key value and TTL of key if key not exists.
+   * Updates TTL of key if key exists and key value equals input value.
    */
-  insert(key: string, value: string, ttl: number): Promise<number>
+  set(key: string, value: string, ttl: number): Promise<OkTTL>
+
   /**
-   * Inserts key value and ttl of key if key value not exists.
-   * Updates ttl of key if key value equals input value.
-   * Returns -1 on success, ttl in milliseconds on failure.
+   * Deletes key if key value equals input value.
    */
-  upsert(key: string, value: string, ttl: number): Promise<number>
-  /**
-   * Removes key if key value equals input value.
-   * Returns true on success, false on failure.
-   */
-  remove(key: string, value: string): Promise<boolean>
+  del(key: string, value: string): Promise<Ok>
 }
 
-/** Error message which is thrown when Locker constructor receives invalid value of ttl. */
+export interface Ok {
+  /** Operation success flag. */
+  ok: boolean
+}
+
+export interface OkTTL extends Ok {
+  /** TTL of a key in milliseconds. */
+  ttl: number
+}
+
+/** Error message which is thrown when Locker constructor receives invalid value of TTL. */
 export const ErrInvalidTTL = 'ttl must be an integer greater than zero'
 
 /** Error message which is thrown when Locker constructor receives invalid value of retryCount. */
@@ -76,17 +80,17 @@ export class Locker {
     }
   }
   /** Creates new Lock. */
-  public createLock(key: string): Lock {
+  createLock(key: string): Lock {
     return new Lock(this._gateway, this._params, key)
   }
   /** Creates and applies new Lock. Throws TTLError if Lock failed to lock the key. */
-  public async lock(key: string): Promise<Lock> {
+  async lock(key: string): Promise<Lock> {
     const lock = this.createLock(key)
-    const ttl = await lock.lock()
-    if (ttl !== -1) {
-      throw new TTLError(ttl)
+    const res = await lock.lock()
+    if (res.ok) {
+      return lock
     }
-    return lock
+    throw new TTLError(res.ttl)
   }
 }
 
@@ -108,15 +112,15 @@ export class TTLError extends Error {
 
 /** Lock implements distributed locking. */
 export class Lock {
-  private _storage: Gateway
+  private _gateway: Gateway
   private _ttl: number
   private _retryCount: number
   private _retryDelay: number
   private _retryJitter: number
   private _key: string
   private _token: string
-  constructor(storage: Gateway, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string) {
-    this._storage = storage
+  constructor(gateway: Gateway, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string) {
+    this._gateway = gateway
     this._ttl = ttl
     this._retryCount = retryCount
     this._retryDelay = retryDelay
@@ -124,46 +128,39 @@ export class Lock {
     this._key = prefix + key
     this._token = ''
   }
-  /** Applies the lock. Returns -1 on success, ttl in milliseconds on failure. */
-  public lock(): Promise<number> {
-    if (this._token === '') {
-      return this._create()
+  /** Applies the lock. */
+  async lock(): Promise<OkTTL> {
+    let token = this._token
+    if (token === '') {
+      token = await createToken()
     }
-    return this._update()
+    return this._lock(token, this._retryCount)
   }
-  /** Releases the lock. Returns true on success, false on failure. */
-  public unlock(): Promise<boolean> {
+  /** Releases the lock. */
+  async unlock(): Promise<Ok> {
     const token = this._token
     if (token === '') {
-      return Promise.resolve(false)
+      return { ok: false }
     }
     this._token = ''
-    return this._storage.remove(this._key, token)
+    return this._unlock(token)
   }
-  private async _create(): Promise<number> {
-    const token = await createToken()
-    return this._insert(token, this._retryCount)
-  }
-  private async _insert(token: string, counter: number): Promise<number> {
-    const v = await this._storage.insert(this._key, token, this._ttl)
-    if (v === -1) {
+  private async _lock(token: string, counter: number): Promise<OkTTL> {
+    const res = await this._gateway.set(this._key, token, this._ttl)
+    if (res.ok) {
       this._token = token
-      return v
+      return res
     }
     if (counter <= 0) {
-      return v
+      this._token = ''
+      return res
     }
     counter--
     await sleep(createDelay(this._retryDelay, this._retryJitter))
-    return this._insert(token, counter)
+    return this._lock(token, counter)
   }
-  private async _update(): Promise<number> {
-    const v = await this._storage.upsert(this._key, this._token, this._ttl)
-    if (v === -1) {
-      return v
-    }
-    this._token = ''
-    return this._create()
+  private _unlock(token: string): Promise<Ok> {
+    return this._gateway.del(this._key, token)
   }
 }
 

@@ -2,5 +2,5 @@
 node_modules/
 *.log
 lib/
-test_coverage/
+coverage/
 package-lock.json

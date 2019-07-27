@@ -1,60 +1,41 @@
 import { createClient } from 'redis'
-import { createLocker, Locker, Lock, TTLError } from '..'
+import { createLocker, Locker, TTLError } from '..'
 
-// Decorator to log output of Locker methods call
-class MyLocker {
-  private _locker: Locker
-  private _key: string
-  private _id: number
-  private _lock: Lock | null
-  constructor(locker: Locker, key: string, id: number) {
-    this._locker = locker
-    this._key = key
-    this._id = id
-    this._lock = null
-  }
-  public async lock(): Promise<void> {
+(async function main() {
+  const client = createClient()
+  const params = { ttl: 100 }
+  const locker1 = createLocker(client, params)
+  const locker2 = createLocker(client, params)
+  const key = 'key'
+  const lockUnlock = async (locker: Locker, id: number) => {
     try {
-      this._lock = await this._locker.lock(this._key)
-      console.log(`Locker#${this._id} has locked the key`)
+      const lock = await locker.lock(key)
+      console.log('Locker#%d has locked the key', id)
+      sleep(50)
+      const { ok } = await lock.unlock()
+      if (ok) {
+        console.log('Locker#%d has unlocked the key', id)
+      } else {
+        console.log('Locker#%d has failed to unlock the key', id)
+      }
     } catch (err) {
       if (err instanceof TTLError) {
-        console.log(`Locker#${this._id} has failed to lock the key, retry after ${err.ttl} ms`)
+        console.log('Locker#%d has failed to lock the key, retry after %d ms', id, err.ttl)
       } else {
         throw err
       }
     }
   }
-  public async unlock(): Promise<void> {
-    if (this._lock === null) {
-      return
-    }
-    const ok = await this._lock.unlock()
-    if (ok) {
-      console.log(`Locker#${this._id} has unlocked the key`)
-      this._lock = null
-    } else {
-      console.log(`Locker#${this._id} has failed to unlock the key`)
-    }
-  }
-}
 
-(async function main() {
-  const client = createClient()
-  const params = { ttl: 100 }
-  const key = 'key'
-  const locker1 = new MyLocker(createLocker(client, params), key, 1)
-  const locker2 = new MyLocker(createLocker(client, params), key, 2)
-
-  await locker1.lock()   // Locker#1 has locked the key
-  await locker2.lock()   // Locker#2 has failed to lock the key, retry after 99 ms
-  await sleep(200)
-  console.log('Timeout 200 ms is up')
-  await locker2.lock()   // Locker#2 has locked the key
-  await locker1.lock()   // Locker#1 has failed to lock the key, retry after 98 ms
-  await locker2.unlock() // Locker#2 has unlocked the key
-  await locker1.lock()   // Locker#1 has locked the key
-  await locker1.unlock() // Locker#1 has unlocked the key
+  await Promise.all([lockUnlock(locker1, 1), lockUnlock(locker2, 2)])
+  await Promise.all([lockUnlock(locker2, 2), lockUnlock(locker1, 1)])
+  // Output:
+  // Locker#1 has locked the key
+  // Locker#2 has failed to lock the key, retry after 100 ms
+  // Locker#1 has unlocked the key
+  // Locker#2 has locked the key
+  // Locker#1 has failed to lock the key, retry after 100 ms
+  // Locker#2 has unlocked the key
 
   client.quit()
 })()

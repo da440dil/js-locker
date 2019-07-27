@@ -1,6 +1,6 @@
 {
   "clearMocks": true,
-  "coverageDirectory": "../test_coverage",
+  "coverageDirectory": "../coverage",
   "rootDir": "src",
   "testEnvironment": "node",
   "testRegex": "^.+\\.spec.(t|j)s$",

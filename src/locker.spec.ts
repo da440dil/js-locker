@@ -21,22 +21,23 @@ describe('Locker', () => {
   })
 
   describe('lock', () => {
-    it('should throw Error if gateway#insert throws Error', async () => {
+    it('should throw Error if gateway#set throws Error', async () => {
       const err = new Error('any')
-      gateway.insert = jest.fn().mockRejectedValue(err)
+      gateway.set = jest.fn().mockRejectedValue(err)
 
       await expect(locker.lock(key)).rejects.toThrow(err)
     })
 
-    it('should throw TTLError if gateway#insert fails', async () => {
-      const ttl = 42
-      gateway.insert = jest.fn().mockResolvedValue(ttl)
+    it('should throw TTLError if gateway#set fails', async () => {
+      const v = { ok: false, ttl: 42 }
+      gateway.set = jest.fn().mockResolvedValue(v.ttl)
 
-      await expect(locker.lock(key)).rejects.toThrow(new TTLError(ttl))
+      await expect(locker.lock(key)).rejects.toThrow(new TTLError(v.ttl))
     })
 
-    it('should not throw Error if gateway#insert does not fail', async () => {
-      gateway.insert = jest.fn().mockResolvedValue(-1)
+    it('should not throw Error if gateway#set does not fail', async () => {
+      const v = { ok: true, ttl: -1 }
+      gateway.set = jest.fn().mockResolvedValue(v)
 
       await expect(locker.lock(key)).resolves.toBeInstanceOf(Lock)
     })

@@ -14,8 +14,6 @@
       true,
       "never"
     ],
-    "no-console": false,
-    "interface-name": false,
     "variable-name": [
       true,
       "ban-keywords",
@@ -26,6 +24,9 @@
     "max-line-length": [
       true,
       150
+    ],
+    "member-access": [
+      false
     ],
     "ordered-imports": false,
     "object-literal-sort-keys": false,
@@ -38,7 +39,8 @@
       }
     ],
     "max-classes-per-file": false,
-    "no-bitwise": false
+    "interface-name": false,
+    "no-console": false
   },
   "rulesDirectory": []
 }

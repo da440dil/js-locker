@@ -6,83 +6,60 @@ export const ErrInvalidResponse = 'Invalid response'
 /** Error message which is thrown when Redis key exists and has no TTL. */
 export const ErrKeyNameClash = 'Key name clash'
 
-const INSERT = '' +
-  'if redis.call("set", KEYS[1], ARGV[1], "nx", "px", ARGV[2]) == false then ' +
-  'return redis.call("pttl", KEYS[1]) ' +
-  'end ' +
-  'return nil'
-const UPSERT = '' +
-  'local v = redis.call("get", KEYS[1])' +
-  'if v == ARGV[1] then ' +
-  'redis.call("pexpire", KEYS[1], ARGV[2]) ' +
-  'return nil ' +
-  'end ' +
+const SET = '' +
+  'local v = redis.call("get", KEYS[1]) ' +
   'if v == false then ' +
   'redis.call("set", KEYS[1], ARGV[1], "px", ARGV[2]) ' +
-  'return nil ' +
+  'return -2 ' +
+  'end ' +
+  'if v == ARGV[1] then ' +
+  'redis.call("pexpire", KEYS[1], ARGV[2]) ' +
+  'return -2 ' +
   'end ' +
   'return redis.call("pttl", KEYS[1])'
-const REMOVE = '' +
+
+const DEL = '' +
   'if redis.call("get", KEYS[1]) == ARGV[1] then ' +
   'return redis.call("del", KEYS[1]) ' +
-  'end'
+  'end ' +
+  'return 0'
 
 export class Gateway {
   private _client: RedisClient
   constructor(client: RedisClient) {
     this._client = client
   }
-  public insert(key: string, value: string, ttl: number): Promise<number> {
+  set(key: string, value: string, ttl: number): Promise<{ ok: boolean; ttl: number; }> {
     return new Promise((resolve, reject) => {
-      this._client.eval(INSERT, 1, key, value, ttl, (err, res) => {
+      this._client.eval(SET, 1, key, value, ttl, (err, res) => {
         if (err) {
           return reject(err)
         }
-        if (res == null) {
-          return resolve(-1)
-        }
-        if (Number(res) !== res) {
+        const t = parseInt(res, 10)
+        if (isNaN(t)) {
           return reject(new Error(ErrInvalidResponse))
         }
-        if (res === -1) {
+        if (t === -1) {
           return reject(new Error(ErrKeyNameClash))
         }
-        resolve(res)
+        if (t === -2) {
+          return resolve({ ok: true, ttl: -1 })
+        }
+        resolve({ ok: false, ttl: t })
       })
     })
   }
-  public upsert(key: string, value: string, ttl: number): Promise<number> {
+  del(key: string, value: string): Promise<{ ok: boolean; }> {
     return new Promise((resolve, reject) => {
-      this._client.eval(UPSERT, 1, key, value, ttl, (err, res) => {
+      this._client.eval(DEL, 1, key, value, (err, res) => {
         if (err) {
           return reject(err)
         }
-        if (res == null) {
-          return resolve(-1)
-        }
-        if (Number(res) !== res) {
+        const n = parseInt(res, 10)
+        if (isNaN(n)) {
           return reject(new Error(ErrInvalidResponse))
         }
-        if (res === -1) {
-          return reject(new Error(ErrKeyNameClash))
-        }
-        resolve(res)
-      })
-    })
-  }
-  public remove(key: string, value: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      this._client.eval(REMOVE, 1, key, value, (err, res) => {
-        if (err) {
-          return reject(err)
-        }
-        if (res == null) {
-          return resolve(false)
-        }
-        if (Number(res) !== res) {
-          return reject(new Error(ErrInvalidResponse))
-        }
-        resolve(res === 1)
+        resolve({ ok: n === 1 })
       })
     })
   }
