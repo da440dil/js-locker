@@ -10,9 +10,9 @@
     "test:c": "jest --config jest.config.json --runInBand --coverage",
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "build": "tsc -p tsconfig.build.json",
-    "purge": "rimraf lib",
+    "clean": "rimraf --",
     "preversion": "npm run lint && npm run test",
-    "prepublishOnly": "npm run purge && npm run build",
+    "prepublishOnly": "npm run clean lib && npm run build",
     "file": "ts-node --"
   },
   "keywords": [],
