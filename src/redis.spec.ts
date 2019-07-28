@@ -1,7 +1,7 @@
 import { createClient, RedisClient } from 'redis'
 import { Gateway, ErrKeyNameClash } from './redis'
 
-const redisUrl = 'redis://127.0.0.1:6379/10'
+const redisUrl = 'redis://localhost:6379/10'
 let client: RedisClient
 
 const key = 'key'
