@@ -1,5 +1,5 @@
 src/
-test_coverage/
+coverage/
 tsconfig.json
 tsconfig.build.json
 tslint.json
