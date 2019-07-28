@@ -15,7 +15,15 @@
     "prepublishOnly": "npm run clean lib && npm run build",
     "file": "ts-node --"
   },
-  "keywords": [],
+  "keywords": [
+    "distributed", 
+    "lock",
+    "locks", 
+    "locking",
+    "distributed-lock",
+    "distributed-locking",
+    "redis"
+  ],
   "author": "",
   "license": "ISC",
   "private": false,
