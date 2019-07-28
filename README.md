@@ -1,5 +1,7 @@
 # js-locker
 
+[![Build Status](https://travis-ci.com/da440dil/js-locker.svg?branch=master)](https://travis-ci.com/da440dil/js-locker)
+
 Distributed locking using [Redis](https://redis.io/).
 
 ## Example
