@@ -27,6 +27,9 @@
   "author": "",
   "license": "ISC",
   "private": false,
+  "engines": {
+    "node": ">=8.0"
+  },
   "dependencies": {
     "redis": "2.8.0"
   },
