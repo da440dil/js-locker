@@ -1,4 +1,5 @@
-import { randomBytes } from 'crypto'
+import { createToken } from './token'
+import { createDelay } from './delay'
 
 /** Gateway to storage to store a lock state. */
 export interface Gateway {
@@ -162,24 +163,6 @@ export class Lock {
   private _unlock(token: string): Promise<Ok> {
     return this._gateway.del(this._key, token)
   }
-}
-
-function createToken(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    randomBytes(16, (err, buf) => {
-      if (err) {
-        return reject(err)
-      }
-      resolve(buf.toString('base64'))
-    })
-  })
-}
-
-function createDelay(retryDelay: number, retryJitter: number): number {
-  if (retryJitter === 0) {
-    return retryDelay
-  }
-  return Math.max(0, retryDelay + Math.floor((Math.random() * 2 - 1) * retryJitter))
 }
 
 function sleep(time: number): Promise<void> {

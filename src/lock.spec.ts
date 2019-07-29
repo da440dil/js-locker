@@ -1,7 +1,4 @@
-import {
-  Gateway,
-  Lock,
-} from './locker'
+import { Gateway, Lock } from './locker'
 
 const gateway = {} as jest.Mocked<Gateway>
 
