@@ -135,7 +135,20 @@ export class Lock {
     if (token === '') {
       token = await createToken()
     }
-    return this._lock(token, this._retryCount)
+    let counter = this._retryCount
+    while (true) {
+      const res = await this._gateway.set(this._key, token, this._ttl)
+      if (res.ok) {
+        this._token = token
+        return res
+      }
+      if (counter <= 0) {
+        this._token = ''
+        return res
+      }
+      counter--
+      await sleep(createDelay(this._retryDelay, this._retryJitter))
+    }
   }
   /** Releases the lock. */
   async unlock(): Promise<Ok> {
@@ -144,23 +157,6 @@ export class Lock {
       return { ok: false }
     }
     this._token = ''
-    return this._unlock(token)
-  }
-  private async _lock(token: string, counter: number): Promise<OkTTL> {
-    const res = await this._gateway.set(this._key, token, this._ttl)
-    if (res.ok) {
-      this._token = token
-      return res
-    }
-    if (counter <= 0) {
-      this._token = ''
-      return res
-    }
-    counter--
-    await sleep(createDelay(this._retryDelay, this._retryJitter))
-    return this._lock(token, counter)
-  }
-  private _unlock(token: string): Promise<Ok> {
     return this._gateway.del(this._key, token)
   }
 }
