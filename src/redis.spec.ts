@@ -30,7 +30,7 @@ describe('Redis Gateway', () => {
   it('should set key value and TTL of key if key not exists', async () => {
     const res = await gateway.set(key, value, ttl)
     expect(res.ok).toBe(true)
-    expect(res.ttl).toBe(-1)
+    expect(res.ttl).toBe(ttl)
 
     let k = await getKey()
     expect(k.value).toBe(value)
@@ -49,7 +49,7 @@ describe('Redis Gateway', () => {
 
     const res = await gateway.set(key, value, ttl)
     expect(res.ok).toBe(true)
-    expect(res.ttl).toBe(-1)
+    expect(res.ttl).toBe(ttl)
 
     let k = await getKey()
     expect(k.value).toBe(value)

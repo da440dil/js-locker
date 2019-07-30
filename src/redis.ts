@@ -43,7 +43,7 @@ export class Gateway {
           return reject(new Error(ErrKeyNameClash))
         }
         if (t === -2) {
-          return resolve({ ok: true, ttl: -1 })
+          return resolve({ ok: true, ttl })
         }
         resolve({ ok: false, ttl: t })
       })
