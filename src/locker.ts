@@ -37,6 +37,9 @@ export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than 
 /** Error message which is thrown when Locker constructor receives invalid value of retryJitter. */
 export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
 
+/** Error message which is thrown when when key size is greater than 512 MB. */
+export const ErrInvalidKey = 'key size must be less than or equal to 512 MB'
+
 /** Parameters for creating new Lock. */
 export interface Params {
   /** TTL of a key in milliseconds. Must be greater than 0. */
@@ -70,6 +73,9 @@ export class Locker {
     }
     if (!(Number.isSafeInteger(retryJitter) && retryJitter >= 0)) {
       throw new Error(ErrInvalidRetryJitter)
+    }
+    if (!isValidKey(prefix)) {
+      throw new Error(ErrInvalidKey)
     }
     this._gateway = gateway
     this._params = {
@@ -121,12 +127,16 @@ export class Lock {
   private _key: string
   private _token: string
   constructor(gateway: Gateway, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string) {
+    key = prefix + key
+    if (!isValidKey(key)) {
+      throw new Error(ErrInvalidKey)
+    }
     this._gateway = gateway
     this._ttl = ttl
     this._retryCount = retryCount
     this._retryDelay = retryDelay
     this._retryJitter = retryJitter
-    this._key = prefix + key
+    this._key = key
     this._token = ''
   }
   /** Applies the lock. */
@@ -165,4 +175,10 @@ function sleep(time: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, time)
   })
+}
+
+export const MaxKeySize = 512000000
+
+function isValidKey(key: string): boolean {
+  return Buffer.byteLength(key, 'utf8') <= MaxKeySize
 }

@@ -6,11 +6,15 @@ import {
   ErrInvalidRetryCount,
   ErrInvalidRetryDelay,
   ErrInvalidRetryJitter,
+  ErrInvalidKey,
   TTLError,
   ErrConflict,
+  MaxKeySize,
 } from './locker'
 
 const gateway = {} as jest.Mocked<Gateway>
+
+const invalidKey = Buffer.alloc(MaxKeySize + 1).toString()
 
 describe('Locker', () => {
   const key = 'key'
@@ -35,6 +39,10 @@ describe('Locker', () => {
       await expect(locker.lock(key)).rejects.toThrow(new TTLError(v.ttl))
     })
 
+    it('should throw Error if got invalid key', async () => {
+      await expect(locker.lock(invalidKey)).rejects.toThrow(new Error(ErrInvalidKey))
+    })
+
     it('should not throw Error if gateway#set does not fail', async () => {
       const v = { ok: true, ttl: -1 }
       gateway.set = jest.fn().mockResolvedValue(v)
@@ -44,6 +52,10 @@ describe('Locker', () => {
   })
 
   describe('createLock', () => {
+    it('should throw Error if got invalid key', () => {
+      expect(() => locker.createLock(invalidKey)).toThrow(new Error(ErrInvalidKey))
+    })
+
     it('should create new Lock', () => {
       expect(locker.createLock(key)).toBeInstanceOf(Lock)
     })
@@ -65,6 +77,10 @@ describe('Locker constructor', () => {
 
   it('should throw Error if got invalid retryJitter parameter', () => {
     expect(() => new Locker(gateway, { ttl: 1, retryJitter: -1 })).toThrow(new Error(ErrInvalidRetryJitter))
+  })
+
+  it('should throw Error if got invalid prefix parameter', () => {
+    expect(() => new Locker(gateway, { ttl: 1, prefix: invalidKey })).toThrow(new Error(ErrInvalidKey))
   })
 })
 
