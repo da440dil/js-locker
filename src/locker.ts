@@ -177,6 +177,7 @@ function sleep(time: number): Promise<void> {
   })
 }
 
+/** Maximum key size in bytes. */
 export const MaxKeySize = 512000000
 
 function isValidKey(key: string): boolean {
