@@ -1,17 +1,18 @@
 import { createClient } from 'redis'
-import { createLocker, Locker, TTLError } from '..'
+import { RedisGateway, Locker, TTLError } from '..'
 
 (async function main() {
   const client = createClient()
-  const params = { ttl: 100 }
-  const locker1 = createLocker(client, params)
-  const locker2 = createLocker(client, params)
+  const gateway = new RedisGateway(client)
+  const params = { gateway, ttl: 100 }
+  const locker1 = new Locker(params)
+  const locker2 = new Locker(params)
   const key = 'key'
   const lockUnlock = async (locker: Locker, id: number) => {
     try {
       const lock = await locker.lock(key)
       console.log('Locker#%d has locked the key', id)
-      sleep(50)
+      await sleep(50)
       const { ok } = await lock.unlock()
       if (ok) {
         console.log('Locker#%d has unlocked the key', id)

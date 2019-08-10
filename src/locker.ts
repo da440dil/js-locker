@@ -1,41 +1,10 @@
+import { Gateway } from './gateway'
+import { Gateway as MemoryGateway } from './gateway/memory/gateway'
 import { createToken } from './token'
-import { createDelay } from './delay'
-
-/** Gateway to storage to store a lock state. */
-export interface Gateway {
-  /**
-   * Sets key value and TTL of key if key not exists.
-   * Updates TTL of key if key exists and key value equals input value.
-   */
-  set(key: string, value: string, ttl: number): Promise<OkTTL>
-
-  /**
-   * Deletes key if key value equals input value.
-   */
-  del(key: string, value: string): Promise<Ok>
-}
-
-export interface Ok {
-  /** Operation success flag. */
-  ok: boolean
-}
-
-export interface OkTTL extends Ok {
-  /** TTL of a key in milliseconds. */
-  ttl: number
-}
+import { Lock } from './lock'
 
 /** Error message which is thrown when Locker constructor receives invalid value of TTL. */
 export const ErrInvalidTTL = 'ttl must be an integer greater than zero'
-
-/** Error message which is thrown when Locker constructor receives invalid value of retryCount. */
-export const ErrInvalidRetryCount = 'retryCount must be an integer greater than or equal to zero'
-
-/** Error message which is thrown when Locker constructor receives invalid value of retryDelay. */
-export const ErrInvalidRetryDelay = 'retryDelay must be an integer greater than or equal to zero'
-
-/** Error message which is thrown when Locker constructor receives invalid value of retryJitter. */
-export const ErrInvalidRetryJitter = 'retryJitter must be an integer greater than or equal to zero'
 
 /** Error message which is thrown when when key size is greater than 512 MB. */
 export const ErrInvalidKey = 'key size must be less than or equal to 512 MB'
@@ -44,15 +13,12 @@ export const ErrInvalidKey = 'key size must be less than or equal to 512 MB'
 export interface Params {
   /** TTL of a key in milliseconds. Must be greater than 0. */
   ttl: number
-  /** Maximum number of retries if key is locked. Must be greater than or equal to 0. By default equals 0. */
-  retryCount?: number
-  /** Delay in milliseconds between retries if key is locked. Must be greater than or equal to 0. By default equals 0. */
-  retryDelay?: number
   /**
-   * Maximum time in milliseconds randomly added to delays between retries to improve performance under high contention.
-   * Must be greater than or equal to 0. By default equals 0.
+   * Gateway to storage to store a lock state.
+   * If gateway not defined counter creates new memory gateway
+   * with expired keys cleanup every 100 milliseconds.
    */
-  retryJitter?: number
+  gateway?: Gateway
   /** Prefix of a key. By default empty string. */
   prefix?: string
 }
@@ -60,44 +26,41 @@ export interface Params {
 /** Locker defines parameters for creating new Lock. */
 export class Locker {
   private _gateway: Gateway
-  private _params: Required<Params>
-  constructor(gateway: Gateway, { ttl, retryCount = 0, retryDelay = 0, retryJitter = 0, prefix = '' }: Params) {
+  private _ttl: number
+  private _prefix: string
+  constructor({ ttl, prefix = '', gateway = new MemoryGateway(100) }: Params) {
     if (!(Number.isSafeInteger(ttl) && ttl > 0)) {
       throw new Error(ErrInvalidTTL)
-    }
-    if (!(Number.isSafeInteger(retryCount) && retryCount >= 0)) {
-      throw new Error(ErrInvalidRetryCount)
-    }
-    if (!(Number.isSafeInteger(retryDelay) && retryDelay >= 0)) {
-      throw new Error(ErrInvalidRetryDelay)
-    }
-    if (!(Number.isSafeInteger(retryJitter) && retryJitter >= 0)) {
-      throw new Error(ErrInvalidRetryJitter)
     }
     if (!isValidKey(prefix)) {
       throw new Error(ErrInvalidKey)
     }
     this._gateway = gateway
-    this._params = {
-      ttl,
-      retryCount,
-      retryDelay,
-      retryJitter,
-      prefix,
-    }
-  }
-  /** Creates new Lock. */
-  createLock(key: string): Lock {
-    return new Lock(this._gateway, this._params, key)
+    this._ttl = ttl
+    this._prefix = prefix
   }
   /** Creates and applies new Lock. Throws TTLError if Lock failed to lock the key. */
   async lock(key: string): Promise<Lock> {
-    const lock = this.createLock(key)
+    const lock = await this.createLock(key)
     const res = await lock.lock()
     if (res.ok) {
       return lock
     }
     throw new TTLError(res.ttl)
+  }
+  /** Creates new Lock. */
+  async createLock(key: string): Promise<Lock> {
+    key = this._prefix + key
+    if (!isValidKey(key)) {
+      throw new Error(ErrInvalidKey)
+    }
+    const token = await createToken()
+    return new Lock({
+      gateway: this._gateway,
+      ttl: this._ttl,
+      key,
+      token,
+    })
   }
 }
 
@@ -115,66 +78,6 @@ export class TTLError extends Error {
   get ttl() {
     return this._ttl
   }
-}
-
-/** Lock implements distributed locking. */
-export class Lock {
-  private _gateway: Gateway
-  private _ttl: number
-  private _retryCount: number
-  private _retryDelay: number
-  private _retryJitter: number
-  private _key: string
-  private _token: string
-  constructor(gateway: Gateway, { ttl, retryCount, retryDelay, retryJitter, prefix }: Required<Params>, key: string) {
-    key = prefix + key
-    if (!isValidKey(key)) {
-      throw new Error(ErrInvalidKey)
-    }
-    this._gateway = gateway
-    this._ttl = ttl
-    this._retryCount = retryCount
-    this._retryDelay = retryDelay
-    this._retryJitter = retryJitter
-    this._key = key
-    this._token = ''
-  }
-  /** Applies the lock. */
-  async lock(): Promise<OkTTL> {
-    let token = this._token
-    if (token === '') {
-      token = await createToken()
-    }
-    let counter = this._retryCount
-    while (true) {
-      const res = await this._gateway.set(this._key, token, this._ttl)
-      if (res.ok) {
-        this._token = token
-        return res
-      }
-      if (counter <= 0) {
-        this._token = ''
-        return res
-      }
-      counter--
-      await sleep(createDelay(this._retryDelay, this._retryJitter))
-    }
-  }
-  /** Releases the lock. */
-  async unlock(): Promise<Ok> {
-    const token = this._token
-    if (token === '') {
-      return { ok: false }
-    }
-    this._token = ''
-    return this._gateway.del(this._key, token)
-  }
-}
-
-function sleep(time: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, time)
-  })
 }
 
 /** Maximum key size in bytes. */

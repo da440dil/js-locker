@@ -1,5 +1,5 @@
 import { createClient, RedisClient, Callback } from 'redis'
-import { Gateway, ErrInvalidResponse, ErrKeyNameClash } from './redis'
+import { Gateway, ErrInvalidResponse, ErrKeyNameClash } from './gateway'
 
 const redisUrl = 'redis://localhost:6379/10'
 let client: RedisClient

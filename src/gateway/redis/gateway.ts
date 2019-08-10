@@ -1,3 +1,4 @@
+import { Gateway as IGateway, OkTTL, Ok } from '../../gateway'
 import { RedisClient } from 'redis'
 
 /** Error message which is thrown when Redis command returns response of invalid type. */
@@ -24,12 +25,12 @@ const DEL = '' +
   'end ' +
   'return 0'
 
-export class Gateway {
+export class Gateway implements IGateway {
   private _client: RedisClient
   constructor(client: RedisClient) {
     this._client = client
   }
-  set(key: string, value: string, ttl: number): Promise<{ ok: boolean; ttl: number; }> {
+  set(key: string, value: string, ttl: number): Promise<OkTTL> {
     return new Promise((resolve, reject) => {
       this._client.eval(SET, 1, key, value, ttl, (err, res) => {
         if (err) {
@@ -49,7 +50,7 @@ export class Gateway {
       })
     })
   }
-  del(key: string, value: string): Promise<{ ok: boolean; }> {
+  del(key: string, value: string): Promise<Ok> {
     return new Promise((resolve, reject) => {
       this._client.eval(DEL, 1, key, value, (err, res) => {
         if (err) {

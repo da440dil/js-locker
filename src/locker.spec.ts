@@ -1,11 +1,8 @@
+import { Gateway } from './gateway'
+import { Lock } from './lock'
 import {
-  Gateway,
   Locker,
-  Lock,
   ErrInvalidTTL,
-  ErrInvalidRetryCount,
-  ErrInvalidRetryDelay,
-  ErrInvalidRetryJitter,
   ErrInvalidKey,
   TTLError,
   ErrConflict,
@@ -21,7 +18,7 @@ describe('Locker', () => {
   let locker: Locker
 
   beforeEach(() => {
-    locker = new Locker(gateway, { ttl: 1 })
+    locker = new Locker({ gateway, ttl: 1 })
   })
 
   describe('lock', () => {
@@ -52,35 +49,23 @@ describe('Locker', () => {
   })
 
   describe('createLock', () => {
-    it('should throw Error if got invalid key', () => {
-      expect(() => locker.createLock(invalidKey)).toThrow(new Error(ErrInvalidKey))
+    it('should throw Error if got invalid key', async () => {
+      await expect(locker.createLock(invalidKey)).rejects.toThrow(new Error(ErrInvalidKey))
     })
 
-    it('should create new Lock', () => {
-      expect(locker.createLock(key)).toBeInstanceOf(Lock)
+    it('should create new Lock', async () => {
+      await expect(locker.createLock(key)).resolves.toBeInstanceOf(Lock)
     })
   })
 })
 
 describe('Locker constructor', () => {
   it('should throw Error if got invalid ttl parameter', () => {
-    expect(() => new Locker(gateway, { ttl: 0 })).toThrow(new Error(ErrInvalidTTL))
-  })
-
-  it('should throw Error if got invalid retryCount parameter', () => {
-    expect(() => new Locker(gateway, { ttl: 1, retryCount: -1 })).toThrow(new Error(ErrInvalidRetryCount))
-  })
-
-  it('should throw Error if got invalid retryDelay parameter', () => {
-    expect(() => new Locker(gateway, { ttl: 1, retryDelay: -1 })).toThrow(new Error(ErrInvalidRetryDelay))
-  })
-
-  it('should throw Error if got invalid retryJitter parameter', () => {
-    expect(() => new Locker(gateway, { ttl: 1, retryJitter: -1 })).toThrow(new Error(ErrInvalidRetryJitter))
+    expect(() => new Locker({ ttl: 0 })).toThrow(new Error(ErrInvalidTTL))
   })
 
   it('should throw Error if got invalid prefix parameter', () => {
-    expect(() => new Locker(gateway, { ttl: 1, prefix: invalidKey })).toThrow(new Error(ErrInvalidKey))
+    expect(() => new Locker({ ttl: 1, prefix: invalidKey })).toThrow(new Error(ErrInvalidKey))
   })
 })
 

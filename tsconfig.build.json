@@ -6,6 +6,6 @@
   "exclude": [
     "./lib",
     "./src/**/*.spec.ts",
-    "./src/example"
+    "./src/examples"
   ]
 }
