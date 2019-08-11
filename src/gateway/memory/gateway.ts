@@ -6,6 +6,7 @@ export interface ValueTTL {
   ttl: number
 }
 
+/** Implements gateway to memory storage. */
 export class Gateway implements IGateway {
   private _storage: Storage
   private _timer: NodeJS.Timer

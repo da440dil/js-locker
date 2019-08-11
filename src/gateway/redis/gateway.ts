@@ -25,6 +25,7 @@ const DEL = '' +
   'end ' +
   'return 0'
 
+/** Implements gateway to Redis storage. */
 export class Gateway implements IGateway {
   private _client: RedisClient
   constructor(client: RedisClient) {
