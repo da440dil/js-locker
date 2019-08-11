@@ -8,14 +8,13 @@ Distributed locking with pluggable storage for storing locks state.
 ## Basic usage
 
 ```javascript
-// Create locker
+// Create new Locker
 const locker = new Locker({ ttl: 100 })
 try {
-  // Lock the key
+  // Create and apply lock
   const lock = await locker.lock('key')
-  // Do smth
-  // Unlock the key
-  await lock.unlock()
+  // Do smth  
+  await lock.unlock() // Release lock
 } catch (err) {
   if (err instanceof TTLError) {
     // Use err.TTL() if need
