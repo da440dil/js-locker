@@ -3,6 +3,7 @@ import { Lock } from './lock'
 import {
   Locker,
   ErrInvalidTTL,
+  ErrInvalidRandomBytesSize,
   ErrInvalidKey,
   TTLError,
   ErrConflict,
@@ -62,6 +63,10 @@ describe('Locker', () => {
 describe('Locker constructor', () => {
   it('should throw Error if got invalid ttl parameter', () => {
     expect(() => new Locker({ ttl: 0 })).toThrow(new Error(ErrInvalidTTL))
+  })
+
+  it('should throw Error if got invalid randomBytesSize parameter', () => {
+    expect(() => new Locker({ ttl: 1, randomBytesSize: 0 })).toThrow(new Error(ErrInvalidRandomBytesSize))
   })
 
   it('should throw Error if got invalid prefix parameter', () => {
