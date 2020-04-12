@@ -184,7 +184,7 @@ function sleep(time: number): Promise<void> {
 }
 
 function makeEvalFn(err: Error | null, res: string | number) {
-  return (...args: Array<string | number | Callback<string | number>>): boolean => {
+  return (...args: (string | number | Callback<string | number>)[]): boolean => {
     const cb = args[args.length - 1];
     if (typeof cb === 'function') {
       cb(err, res);
