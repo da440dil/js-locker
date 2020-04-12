@@ -1,23 +1,25 @@
 /** Gateway to storage to store a lock state. */
-export interface Gateway {
+export interface IGateway {
   /**
    * Sets key value and TTL of key if key not exists.
    * Updates TTL of key if key exists and key value equals input value.
    */
-  set(key: string, value: string, ttl: number): Promise<OkTTL>
+  set(key: string, value: string, ttl: number): Promise<IOkTTL>;
 
   /**
    * Deletes key if key value equals input value.
    */
-  del(key: string, value: string): Promise<Ok>
+  del(key: string, value: string): Promise<IOk>;
 }
 
-export interface Ok {
+/** Result of delete operation. */
+export interface IOk {
   /** Operation success flag. */
-  ok: boolean
+  ok: boolean;
 }
 
-export interface OkTTL extends Ok {
+/** Result of set operation. */
+export interface IOkTTL extends IOk {
   /** TTL of a key in milliseconds. */
-  ttl: number
+  ttl: number;
 }

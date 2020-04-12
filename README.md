@@ -17,7 +17,7 @@ try {
   await lock.unlock() // Release lock
 } catch (err) {
   if (err instanceof TTLError) {
-    // Use err.TTL() if need
+    // Use err.ttl if need
   } else {
     // Handle err
   }

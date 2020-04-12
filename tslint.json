@@ -10,10 +10,6 @@
       "single",
       "avoid-escape"
     ],
-    "semicolon": [
-      true,
-      "never"
-    ],
     "variable-name": [
       true,
       "ban-keywords",
@@ -25,9 +21,6 @@
       true,
       150
     ],
-    "member-access": [
-      false
-    ],
     "ordered-imports": false,
     "object-literal-sort-keys": false,
     "space-before-function-paren": [
@@ -38,8 +31,6 @@
         "asyncArrow": "always"
       }
     ],
-    "max-classes-per-file": false,
-    "interface-name": false,
     "no-console": false
   },
   "rulesDirectory": []
