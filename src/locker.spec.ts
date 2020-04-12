@@ -64,7 +64,7 @@ describe('Locker constructor', () => {
   });
 
   it('should create Locker with random generator', () => {
-    expect(new Locker({ ttl: 1, random: (_: number) => Promise.resolve(Buffer.alloc(0)) })).toBeInstanceOf(Locker);
+    expect(new Locker({ ttl: 1, randomBytes: (_: number) => Promise.resolve(Buffer.alloc(0)) })).toBeInstanceOf(Locker);
   });
 
   it('should create Locker with random bytes size for random generator', () => {

@@ -1,7 +1,7 @@
 import { IGateway } from './IGateway';
 import { MemoryGateway } from './gateway/MemoryGateway';
 import { Lock } from './Lock';
-import { CreateRandomBytes, createRandomBytes } from './random';
+import { RandomBytes, createRandomBytes } from './random';
 import { TTLError } from './TTLError';
 
 /** Locker defines parameters for creating new Lock. */
@@ -34,12 +34,12 @@ export class Locker {
   }
 
   private gateway: IGateway;
-  private createRandomBytes: CreateRandomBytes;
+  private randomBytes: RandomBytes;
   private randomBytesSize: number;
   private ttl: number;
   private prefix: string;
 
-  constructor({ ttl, random, randomBytesSize, prefix, gateway }: {
+  constructor({ ttl, randomBytes, randomBytesSize, prefix, gateway }: {
     /** TTL of a key in milliseconds. Must be greater than 0. */
     ttl: number;
     /**
@@ -54,7 +54,7 @@ export class Locker {
      * Random generator for generation lock tokens.
      * By default crypto.randomBytes.
      */
-    random?: CreateRandomBytes;
+    randomBytes?: RandomBytes;
     /**
      * Bytes size to read from random generator for generation lock tokens.
      * Must be greater than 0.
@@ -74,7 +74,7 @@ export class Locker {
       Locker.validateKey(prefix);
     }
     this.gateway = gateway === undefined ? new MemoryGateway(100) : gateway;
-    this.createRandomBytes = random === undefined ? createRandomBytes : random;
+    this.randomBytes = randomBytes === undefined ? createRandomBytes : randomBytes;
     this.randomBytesSize = randomBytesSize;
     this.ttl = ttl;
     this.prefix = prefix;
@@ -94,7 +94,7 @@ export class Locker {
   public async createLock(key: string): Promise<Lock> {
     key = this.prefix + key;
     Locker.validateKey(key);
-    const buf = await this.createRandomBytes(this.randomBytesSize);
+    const buf = await this.randomBytes(this.randomBytesSize);
     return new Lock({
       gateway: this.gateway,
       ttl: this.ttl,
