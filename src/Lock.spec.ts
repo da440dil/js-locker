@@ -1,41 +1,105 @@
-import { IGateway } from './IGateway';
-import { Lock } from './Lock';
+import { createClient, RedisClient, Callback } from 'redis';
+import { Lock, errMsgInvalidResponse } from './Lock';
+import { sleep } from './sleep';
 
-const gateway = {} as jest.Mocked<IGateway>;
+const key = 'key';
 
-describe('Lock', () => {
-  const key = 'key';
-  const ttl = 100;
-  const token = 'token';
-  let lock: Lock;
-
-  beforeEach(() => {
-    lock = new Lock({ gateway, ttl, key, token });
-  });
-
-  it('should lock', async () => {
-    gateway.set = jest.fn()
-      .mockResolvedValueOnce({ ok: true, ttl: -1 })
-      .mockResolvedValueOnce({ ok: false, ttl: 42 });
-
-    const r1 = await lock.lock();
-    const r2 = await lock.lock();
-    expect(r1).toStrictEqual({ ok: true, ttl: -1 });
-    expect(r2).toStrictEqual({ ok: false, ttl: 42 });
-    expect(gateway.set).toBeCalledTimes(2);
-    expect(gateway.set.mock.calls).toEqual([[key, token, ttl], [key, token, ttl]]);
-  });
-
-  it('should unlock', async () => {
-    gateway.del = jest.fn()
-      .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({ ok: false });
-
-    const r1 = await lock.unlock();
-    const r2 = await lock.unlock();
-    expect(r1).toStrictEqual({ ok: true });
-    expect(r2).toStrictEqual({ ok: false });
-    expect(gateway.del).toBeCalledTimes(2);
-    expect(gateway.del.mock.calls).toEqual([[key, token], [key, token]]);
-  });
+let client: RedisClient;
+beforeAll(() => {
+    client = createClient();
 });
+afterAll(() => {
+    client.quit();
+});
+beforeEach((cb) => {
+    client.del(key, cb);
+});
+
+it('Lock', async () => {
+    const ttl = 500;
+
+    const lock1 = new Lock({ client, ttl, key, token: 'token1' });
+    let result = await lock1.lock();
+    expect(result.ok).toEqual(true);
+    expect(result.ttl).toEqual(-3);
+
+    result = await lock1.lock();
+    expect(result.ok).toEqual(true);
+    expect(result.ttl).toEqual(-4);
+
+    const lock2 = new Lock({ client, ttl, key, token: 'token2' });
+    result = await lock2.lock();
+    expect(result.ok).toEqual(false);
+    expect(result.ttl).toBeGreaterThanOrEqual(0);
+    expect(result.ttl).toBeLessThanOrEqual(ttl);
+
+    await sleep(result.ttl); // wait for the ttl of the key is over
+
+    result = await lock2.lock();
+    expect(result.ok).toEqual(true);
+    expect(result.ttl).toEqual(-3);
+
+    let ok = await lock1.unlock();
+    expect(ok).toEqual(false);
+
+    ok = await lock2.unlock();
+    expect(ok).toEqual(true);
+
+    const redisErr = new Error('Redis error');
+    const resErr = new Error(errMsgInvalidResponse);
+
+    const evalMock = jest.spyOn(client, 'evalsha');
+
+    evalMock.mockImplementation(makeEvalFn(redisErr, -3));
+    await expect(lock1.lock()).rejects.toThrow(redisErr);
+    await expect(lock1.unlock()).rejects.toThrow(redisErr);
+
+    evalMock.mockImplementation(makeEvalFn(null, undefined));
+    await expect(lock1.lock()).rejects.toThrow(resErr);
+    await expect(lock1.unlock()).rejects.toThrow(resErr);
+
+    evalMock.mockImplementation(makeEvalFn(null, 1));
+    await expect(lock1.lock()).resolves.toMatchObject({ ok: false, ttl: 1 });
+
+    evalMock.mockImplementation(makeEvalFn(null, -2));
+    await expect(lock1.lock()).resolves.toMatchObject({ ok: false, ttl: -2 });
+
+    evalMock.mockImplementation(makeEvalFn(null, -3));
+    await expect(lock1.lock()).resolves.toMatchObject({ ok: true, ttl: -3 });
+
+    evalMock.mockImplementation(makeEvalFn(null, 0));
+    await expect(lock1.unlock()).resolves.toEqual(false);
+
+    evalMock.mockImplementation(makeEvalFn(null, 1));
+    await expect(lock1.unlock()).resolves.toEqual(true);
+
+    const redisLoadErr = new Error('NOSCRIPT No matching script. Please use EVAL.');
+
+    const loadMock = jest.spyOn(client, 'script');
+    loadMock.mockImplementation(makeEvalFn(redisErr, undefined));
+    evalMock.mockImplementation(makeEvalFn(redisLoadErr, -3));
+    await expect(lock1.lock()).rejects.toThrow(redisErr);
+    await expect(lock1.unlock()).rejects.toThrow(redisErr);
+
+    loadMock.mockImplementation(makeEvalFn(null, undefined));
+    evalMock.mockImplementationOnce(makeEvalFn(redisLoadErr, -3)).mockImplementationOnce(makeEvalFn(null, -3));
+    await expect(lock1.lock()).resolves.toMatchObject({ ok: true, ttl: -3 });
+
+    evalMock.mockImplementationOnce(makeEvalFn(redisLoadErr, 1)).mockImplementationOnce(makeEvalFn(null, 1));
+    await expect(lock1.unlock()).resolves.toEqual(true);
+
+    loadMock.mockRestore();
+    evalMock.mockRestore();
+});
+
+type Res = number | undefined;
+
+function makeEvalFn(err: Error | null, res: Res) {
+    return (...args: (string | number | Callback<Res>)[]): boolean => {
+        const cb = args[args.length - 1];
+        if (typeof cb === 'function') {
+            cb(err, res);
+        }
+        return false;
+    };
+}

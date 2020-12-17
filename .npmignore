@@ -2,6 +2,7 @@ src/
 coverage/
 tsconfig.json
 tsconfig.build.json
-tslint.json
+.eslintrc
+.eslintignore
 jest.config.json
 .travis.yml

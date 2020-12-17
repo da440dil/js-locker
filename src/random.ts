@@ -1,7 +1,9 @@
 import { randomBytes } from 'crypto';
 
-/** Random generator for generation lock tokens. */
-export type RandomBytes = (bytesSize: number) => Promise<Buffer>;
+/** Random generator to generate a lock token. */
+export interface RandomBytesFunc {
+  (bytesSize: number): Promise<Buffer>;
+}
 
 export function createRandomBytes(bytesSize: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {

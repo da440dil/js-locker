@@ -1,10 +1,4 @@
 {
-  "clearMocks": true,
-  "coverageDirectory": "../coverage",
-  "rootDir": "src",
-  "testEnvironment": "node",
-  "testRegex": "^.+\\.spec.(t|j)s$",
-  "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
-  }
+  "preset": "ts-jest",
+  "testEnvironment": "node"
 }
