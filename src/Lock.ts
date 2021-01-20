@@ -24,7 +24,7 @@ return 0
 const lockHash = createHash('sha1').update(lockScript).digest('hex');
 const unlockHash = createHash('sha1').update(unlockScript).digest('hex');
 
-/** Result of lock() operation. */
+/** Result of applying a lock. */
 export interface IResult {
     /** Operation success flag. */
     ok: boolean;

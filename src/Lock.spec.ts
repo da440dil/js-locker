@@ -1,6 +1,7 @@
-import { createClient, RedisClient, Callback } from 'redis';
+import { createClient, RedisClient } from 'redis';
 import { Lock, errUnexpectedRedisResponse } from './Lock';
 import { sleep } from './sleep';
+import { mockCallback } from './mock';
 
 const key = 'key';
 
@@ -50,56 +51,44 @@ it('Lock', async () => {
 
     const evalMock = jest.spyOn(client, 'evalsha');
 
-    evalMock.mockImplementation(makeEvalFn(redisErr, -3));
+    evalMock.mockImplementation(mockCallback(redisErr, -3));
     await expect(lock1.lock()).rejects.toThrow(redisErr);
     await expect(lock1.unlock()).rejects.toThrow(redisErr);
 
-    evalMock.mockImplementation(makeEvalFn(null, undefined));
+    evalMock.mockImplementation(mockCallback(null, undefined));
     await expect(lock1.lock()).rejects.toThrow(resErr);
     await expect(lock1.unlock()).rejects.toThrow(resErr);
 
-    evalMock.mockImplementation(makeEvalFn(null, 1));
+    evalMock.mockImplementation(mockCallback(null, 1));
     await expect(lock1.lock()).resolves.toMatchObject({ ok: false, ttl: 1 });
 
-    evalMock.mockImplementation(makeEvalFn(null, -2));
+    evalMock.mockImplementation(mockCallback(null, -2));
     await expect(lock1.lock()).resolves.toMatchObject({ ok: false, ttl: -2 });
 
-    evalMock.mockImplementation(makeEvalFn(null, -3));
+    evalMock.mockImplementation(mockCallback(null, -3));
     await expect(lock1.lock()).resolves.toMatchObject({ ok: true, ttl: -3 });
 
-    evalMock.mockImplementation(makeEvalFn(null, 0));
+    evalMock.mockImplementation(mockCallback(null, 0));
     await expect(lock1.unlock()).resolves.toEqual(false);
 
-    evalMock.mockImplementation(makeEvalFn(null, 1));
+    evalMock.mockImplementation(mockCallback(null, 1));
     await expect(lock1.unlock()).resolves.toEqual(true);
 
     const redisLoadErr = new Error('NOSCRIPT No matching script. Please use EVAL.');
 
     const loadMock = jest.spyOn(client, 'script');
-    loadMock.mockImplementation(makeEvalFn(redisErr, undefined));
-    evalMock.mockImplementation(makeEvalFn(redisLoadErr, -3));
+    loadMock.mockImplementation(mockCallback(redisErr, undefined));
+    evalMock.mockImplementation(mockCallback(redisLoadErr, -3));
     await expect(lock1.lock()).rejects.toThrow(redisErr);
     await expect(lock1.unlock()).rejects.toThrow(redisErr);
 
-    loadMock.mockImplementation(makeEvalFn(null, undefined));
-    evalMock.mockImplementationOnce(makeEvalFn(redisLoadErr, -3)).mockImplementationOnce(makeEvalFn(null, -3));
+    loadMock.mockImplementation(mockCallback(null, undefined));
+    evalMock.mockImplementationOnce(mockCallback(redisLoadErr, -3)).mockImplementationOnce(mockCallback(null, -3));
     await expect(lock1.lock()).resolves.toMatchObject({ ok: true, ttl: -3 });
 
-    evalMock.mockImplementationOnce(makeEvalFn(redisLoadErr, 1)).mockImplementationOnce(makeEvalFn(null, 1));
+    evalMock.mockImplementationOnce(mockCallback(redisLoadErr, 1)).mockImplementationOnce(mockCallback(null, 1));
     await expect(lock1.unlock()).resolves.toEqual(true);
 
     loadMock.mockRestore();
     evalMock.mockRestore();
 });
-
-type Res = number | undefined;
-
-function makeEvalFn(err: Error | null, res: Res) {
-    return (...args: (string | number | Callback<Res>)[]): boolean => {
-        const cb = args[args.length - 1];
-        if (typeof cb === 'function') {
-            cb(err, res);
-        }
-        return false;
-    };
-}

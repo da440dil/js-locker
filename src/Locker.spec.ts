@@ -1,6 +1,7 @@
 import { createClient, RedisClient } from 'redis';
 import { Locker } from './Locker';
 import { Lock } from './Lock';
+import { mockCallback } from './mock';
 
 let client: RedisClient;
 beforeAll(() => {
@@ -11,6 +12,13 @@ afterAll(() => {
 });
 
 it('Locker', async () => {
+    const evalMock = jest.spyOn(client, 'evalsha');
+    evalMock.mockImplementation(mockCallback(null, -3));
+
     const locker = new Locker({ client, ttl: 100 });
-    await expect(locker.lock('key')).resolves.toBeInstanceOf(Lock);
+    const { lock, result } = await locker.lock('key');
+    expect(lock).toBeInstanceOf(Lock);
+    expect(result).toMatchObject({ ok: true, ttl: -3 });
+
+    evalMock.mockRestore();
 });

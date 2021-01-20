@@ -1,6 +1,6 @@
 import { RedisClient } from 'redis';
 import { RandomBytesFunc, createRandomBytes } from './random';
-import { ILock, Lock } from './Lock';
+import { IResult, ILock, Lock } from './Lock';
 
 /** Locker defines parameters for creating new lock. */
 export class Locker {
@@ -31,14 +31,22 @@ export class Locker {
         this.randomBytesSize = randomBytesSize;
     }
 
-    /** Creates new lock. */
-    public async lock(key: string): Promise<ILock> {
+    /** Creates and applies new lock. */
+    public async lock(key: string): Promise<ILockResult> {
         const buf = await this.createRandomBytes(this.randomBytesSize);
-        return new Lock({
+        const lock = new Lock({
             client: this.client,
             ttl: this.ttl,
             key,
             token: buf.toString('base64'),
         });
+        const result = await lock.lock();
+        return { lock, result };
     }
+}
+
+/** Contains new lock and result of applying the lock. */
+export interface ILockResult {
+    lock: ILock;
+    result: IResult;
 }
