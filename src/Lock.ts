@@ -43,8 +43,8 @@ export interface ILock {
     unlock(): Promise<boolean>;
 }
 
-/** Error message which is thrown when Redis command returns response of invalid type. */
-export const errMsgInvalidResponse = 'Invalid redis response';
+/** Error message which is thrown when Redis command returns response of unexpected type. */
+export const errUnexpectedRedisResponse = 'Unexpected redis response';
 
 export class Lock implements ILock {
     private client: RedisClient;
@@ -95,7 +95,7 @@ export class Lock implements ILock {
                     return reject(err);
                 }
                 if (typeof res !== 'number') {
-                    return reject(new Error(errMsgInvalidResponse));
+                    return reject(new Error(errUnexpectedRedisResponse));
                 }
                 resolve({ ok: res < -2, ttl: res });
             });
@@ -109,7 +109,7 @@ export class Lock implements ILock {
                     return reject(err);
                 }
                 if (typeof res !== 'number') {
-                    return reject(new Error(errMsgInvalidResponse));
+                    return reject(new Error(errUnexpectedRedisResponse));
                 }
                 resolve(res === 1);
             });

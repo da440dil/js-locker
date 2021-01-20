@@ -1,5 +1,5 @@
 import { createClient, RedisClient, Callback } from 'redis';
-import { Lock, errMsgInvalidResponse } from './Lock';
+import { Lock, errUnexpectedRedisResponse } from './Lock';
 import { sleep } from './sleep';
 
 const key = 'key';
@@ -46,7 +46,7 @@ it('Lock', async () => {
     expect(ok).toEqual(true);
 
     const redisErr = new Error('Redis error');
-    const resErr = new Error(errMsgInvalidResponse);
+    const resErr = new Error(errUnexpectedRedisResponse);
 
     const evalMock = jest.spyOn(client, 'evalsha');
 
