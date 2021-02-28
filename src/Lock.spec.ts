@@ -1,6 +1,6 @@
 import { promisify } from 'util';
 import { createClient, RedisClient } from 'redis';
-import { RedisScript } from 'js-redis-script';
+import { RedisScript } from '@da440dil/js-redis-script';
 import { Lock, lockSrc, unlockSrc } from './Lock';
 
 const sleep = promisify(setTimeout);

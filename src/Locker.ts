@@ -1,5 +1,5 @@
 import { RedisClient } from 'redis';
-import { RedisScript } from 'js-redis-script';
+import { RedisScript } from '@da440dil/js-redis-script';
 import { RandomBytesFunc, createRandomBytes } from './random';
 import { IResult, ILock, Lock, lockSrc, unlockSrc } from './Lock';
 

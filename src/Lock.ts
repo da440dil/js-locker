@@ -1,4 +1,4 @@
-import { RedisScript } from 'js-redis-script';
+import { RedisScript } from '@da440dil/js-redis-script';
 
 export const lockSrc = `
 local token = redis.call("get", KEYS[1])
