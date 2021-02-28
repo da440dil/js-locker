@@ -10,7 +10,7 @@ Distributed locking using [Redis](https://redis.io/).
 ```typescript
 import { promisify } from 'util';
 import { createClient } from 'redis';
-import { Locker } from '..';
+import { Locker } from '@da440dil/js-locker';
 
 const sleep = promisify(setTimeout);
 
