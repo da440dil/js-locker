@@ -46,6 +46,19 @@
                 "format": [
                     "camelCase"
                 ]
+            },
+            {
+                "selector": "variable",
+                "format": [
+                    "camelCase",
+                    "UPPER_CASE"
+                ]
+            }
+        ],
+        "@typescript-eslint/unbound-method": [
+            "error",
+            {
+                "ignoreStatic": true
             }
         ]
     }

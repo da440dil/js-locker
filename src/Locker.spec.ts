@@ -1,24 +1,21 @@
-import { createClient, RedisClient } from 'redis';
+import { RedisClient } from 'redis';
 import { Locker } from './Locker';
 import { Lock } from './Lock';
-import { mockCallback } from './mock';
 
-let client: RedisClient;
-beforeAll(() => {
-    client = createClient();
-});
-afterAll(() => {
-    client.quit();
+const runMock = jest.fn();
+jest.mock('js-redis-script', () => {
+    return {
+        RedisScript: jest.fn().mockImplementation(() => {
+            return { run: runMock };
+        }),
+    };
 });
 
 it('Locker', async () => {
-    const evalMock = jest.spyOn(client, 'evalsha');
-    evalMock.mockImplementation(mockCallback(null, -3));
+    const locker = new Locker({ client: {} as RedisClient, ttl: 100 });
 
-    const locker = new Locker({ client, ttl: 100 });
-    const { lock, result } = await locker.lock('key');
+    runMock.mockImplementation(() => Promise.resolve(-3));
+    const { lock, result } = await locker.lock('');
     expect(lock).toBeInstanceOf(Lock);
     expect(result).toMatchObject({ ok: true, ttl: -3 });
-
-    evalMock.mockRestore();
 });

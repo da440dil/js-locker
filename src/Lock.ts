@@ -1,7 +1,6 @@
-import { createHash } from 'crypto';
-import { RedisClient } from 'redis';
+import { RedisScript } from 'js-redis-script';
 
-const lockScript = `
+export const lockSrc = `
 local token = redis.call("get", KEYS[1])
 if token == false then
 	redis.call("set", KEYS[1], ARGV[1], "px", ARGV[2])
@@ -14,15 +13,12 @@ end
 return redis.call("pttl", KEYS[1])
 `;
 
-const unlockScript = `
+export const unlockSrc = `
 if redis.call("get", KEYS[1]) == ARGV[1] then
 	return redis.call("del", KEYS[1])
 end
 return 0
 `;
-
-const lockHash = createHash('sha1').update(lockScript).digest('hex');
-const unlockHash = createHash('sha1').update(unlockScript).digest('hex');
 
 /** Result of applying a lock. */
 export interface IResult {
@@ -43,91 +39,34 @@ export interface ILock {
     unlock(): Promise<boolean>;
 }
 
-/** Error message which is thrown when Redis command returns response of unexpected type. */
-export const errUnexpectedRedisResponse = 'Unexpected redis response';
-
 export class Lock implements ILock {
-    private client: RedisClient;
     private ttl: number;
+    private lockScript: RedisScript<number>;
+    private unlockScript: RedisScript<number>;
     private key: string;
     private token: string;
 
-    constructor({ client, ttl, key, token }: {
-        client: RedisClient;
+    constructor({ ttl, lockScript, unlockScript, key, token }: {
         ttl: number;
+        lockScript: RedisScript<number>;
+        unlockScript: RedisScript<number>;
         key: string;
         token: string;
     }) {
-        this.client = client;
         this.ttl = ttl;
+        this.lockScript = lockScript;
+        this.unlockScript = unlockScript;
         this.key = key;
         this.token = token;
     }
 
     public async lock(): Promise<IResult> {
-        try {
-            return await this.evalshaLock();
-        } catch (err) {
-            if (!isNoScriptErr(err)) {
-                throw err;
-            }
-            await this.load(lockScript);
-            return this.evalshaLock();
-        }
+        const res = await this.lockScript.run(1, this.key, this.token, this.ttl);
+        return { ok: res < -2, ttl: res };
     }
 
     public async unlock(): Promise<boolean> {
-        try {
-            return await this.evalshaUnlock();
-        } catch (err) {
-            if (!isNoScriptErr(err)) {
-                throw err;
-            }
-            await this.load(unlockScript);
-            return this.evalshaUnlock();
-        }
+        const res = await this.unlockScript.run(1, this.key, this.token);
+        return res === 1;
     }
-
-    private async evalshaLock(): Promise<IResult> {
-        return new Promise((resolve, reject) => {
-            this.client.evalsha(lockHash, 1, this.key, this.token, this.ttl, (err, res) => {
-                if (err) {
-                    return reject(err);
-                }
-                if (typeof res !== 'number') {
-                    return reject(new Error(errUnexpectedRedisResponse));
-                }
-                resolve({ ok: res < -2, ttl: res });
-            });
-        });
-    }
-
-    private async evalshaUnlock(): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            this.client.evalsha(unlockHash, 1, this.key, this.token, (err, res) => {
-                if (err) {
-                    return reject(err);
-                }
-                if (typeof res !== 'number') {
-                    return reject(new Error(errUnexpectedRedisResponse));
-                }
-                resolve(res === 1);
-            });
-        });
-    }
-
-    private load(script: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.client.script('load', script, (err) => {
-                if (err) {
-                    return reject(err);
-                }
-                resolve();
-            });
-        });
-    }
-}
-
-function isNoScriptErr(err: unknown): boolean {
-    return err instanceof Error && err.message.startsWith('NOSCRIPT ');
 }

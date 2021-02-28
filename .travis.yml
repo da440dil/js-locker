@@ -3,5 +3,5 @@ node_js:
   - "12"
   - "14"
 services:
-  - redis-server
+  - redis
 after_success: npm run coveralls

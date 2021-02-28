@@ -1,13 +1,15 @@
 import { RedisClient } from 'redis';
+import { RedisScript } from 'js-redis-script';
 import { RandomBytesFunc, createRandomBytes } from './random';
-import { IResult, ILock, Lock } from './Lock';
+import { IResult, ILock, Lock, lockSrc, unlockSrc } from './Lock';
 
 /** Locker defines parameters for creating new lock. */
 export class Locker {
-    private client: RedisClient;
     private ttl: number;
     private createRandomBytes: RandomBytesFunc;
     private randomBytesSize: number;
+    private lockScript: RedisScript<number>;
+    private unlockScript: RedisScript<number>;
 
     constructor({ client, ttl, randomBytesFunc = createRandomBytes, randomBytesSize = 16 }: {
         /** Redis [client](https://github.com/NodeRedis/node-redis). */
@@ -25,18 +27,20 @@ export class Locker {
          */
         randomBytesSize?: number;
     }) {
-        this.client = client;
         this.ttl = ttl;
         this.createRandomBytes = randomBytesFunc;
         this.randomBytesSize = randomBytesSize;
+        this.lockScript = new RedisScript({ client, src: lockSrc });
+        this.unlockScript = new RedisScript({ client, src: unlockSrc });
     }
 
     /** Creates and applies new lock. */
     public async lock(key: string): Promise<ILockResult> {
         const buf = await this.createRandomBytes(this.randomBytesSize);
         const lock = new Lock({
-            client: this.client,
             ttl: this.ttl,
+            lockScript: this.lockScript,
+            unlockScript: this.unlockScript,
             key,
             token: buf.toString('base64'),
         });
