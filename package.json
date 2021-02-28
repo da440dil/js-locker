@@ -1,6 +1,6 @@
 {
   "name": "@da440dil/js-locker",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Distributed locking using Redis",
   "main": "lib/index.js",
   "scripts": {
