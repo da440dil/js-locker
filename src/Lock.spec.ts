@@ -40,7 +40,7 @@ it('Lock', async () => {
 	expect(result.ttl).toBeGreaterThanOrEqual(0);
 	expect(result.ttl).toBeLessThanOrEqual(ttl);
 
-	await sleep(result.ttl); // wait for the ttl of the key is over
+	await sleep(result.ttl + 100); // wait for the ttl of the key is over
 
 	result = await lock2.lock();
 	expect(result.ok).toEqual(true);
