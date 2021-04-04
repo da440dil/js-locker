@@ -7,7 +7,7 @@ jest.mock('@da440dil/js-redis-script', () => {
     return {
         RedisScript: jest.fn().mockImplementation(() => {
             return { run: runMock };
-        }),
+        })
     };
 });
 
