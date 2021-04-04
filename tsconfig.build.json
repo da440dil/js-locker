@@ -1,14 +1,14 @@
 {
-  "extends": "./tsconfig.json",
-  "include": [
-    "./src/**/*"
-  ],
-  "exclude": [
-    "./lib",
-    "./src/**/*.spec.ts",
-    "./src/examples"
-  ],
-  "compilerOptions": {
-    "declaration": true
-  }
+	"extends": "./tsconfig.json",
+	"include": [
+		"./src/**/*"
+	],
+	"exclude": [
+		"./lib",
+		"./src/**/*.spec.ts",
+		"./src/examples"
+	],
+	"compilerOptions": {
+		"declaration": true
+	}
 }

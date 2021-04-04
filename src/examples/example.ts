@@ -5,44 +5,44 @@ import { Locker } from '..';
 const sleep = promisify(setTimeout);
 
 async function main() {
-    const client = createClient();
-    const locker = new Locker({ client, ttl: 100 });
+	const client = createClient();
+	const locker = new Locker({ client, ttl: 100 });
 
-    const key = 'key';
-    const lockUnlock = async (id: number) => {
-        const { lock, result } = await locker.lock(key);
-        if (!result.ok) {
-            console.log('Failed to apply lock #%d, retry after %dms', id, result.ttl);
-            return;
-        }
-        console.log('Lock #%d applied', id);
-        await sleep(50);
-        const res = await lock.lock();
-        if (!res.ok) {
-            console.log('Failed to extend lock #%d, retry after %dms', id, res.ttl);
-            return;
-        }
-        console.log('Lock #%d extended', id);
-        await sleep(50);
-        const ok = await lock.unlock();
-        if (!ok) {
-            console.log('Failed to release lock #%d', id);
-            return;
-        }
-        console.log('Lock #%d released', id);
-    };
+	const key = 'key';
+	const lockUnlock = async (id: number) => {
+		const { lock, result } = await locker.lock(key);
+		if (!result.ok) {
+			console.log('Failed to apply lock #%d, retry after %dms', id, result.ttl);
+			return;
+		}
+		console.log('Lock #%d applied', id);
+		await sleep(50);
+		const res = await lock.lock();
+		if (!res.ok) {
+			console.log('Failed to extend lock #%d, retry after %dms', id, res.ttl);
+			return;
+		}
+		console.log('Lock #%d extended', id);
+		await sleep(50);
+		const ok = await lock.unlock();
+		if (!ok) {
+			console.log('Failed to release lock #%d', id);
+			return;
+		}
+		console.log('Lock #%d released', id);
+	};
 
-    await Promise.all([lockUnlock(1), lockUnlock(2)]);
-    // Output:
-    // Lock #1 applied
-    // Failed to apply lock #2, retry after 100ms
-    // Lock #1 extended
-    // Lock #1 released
+	await Promise.all([lockUnlock(1), lockUnlock(2)]);
+	// Output:
+	// Lock #1 applied
+	// Failed to apply lock #2, retry after 100ms
+	// Lock #1 extended
+	// Lock #1 released
 
-    client.quit();
+	client.quit();
 }
 
 main().catch((err) => {
-    console.error(err);
-    process.exit(1);
+	console.error(err);
+	process.exit(1);
 });
