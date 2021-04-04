@@ -25,22 +25,22 @@ export interface ILock {
 }
 
 export class Lock implements ILock {
-	private ttl: number;
 	private lockScript: RedisScript<number>;
 	private unlockScript: RedisScript<number>;
+	private ttl: number;
 	private key: string;
 	private token: string;
 
-	constructor({ ttl, lockScript, unlockScript, key, token }: {
-		ttl: number;
-		lockScript: RedisScript<number>;
-		unlockScript: RedisScript<number>;
-		key: string;
-		token: string;
-	}) {
-		this.ttl = ttl;
+	constructor(
+		lockScript: RedisScript<number>,
+		unlockScript: RedisScript<number>,
+		ttl: number,
+		key: string,
+		token: string
+	) {
 		this.lockScript = lockScript;
 		this.unlockScript = unlockScript;
+		this.ttl = ttl;
 		this.key = key;
 		this.token = token;
 	}

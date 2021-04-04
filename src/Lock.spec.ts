@@ -25,7 +25,7 @@ beforeEach((cb) => {
 it('Lock', async () => {
 	const ttl = 500;
 
-	const lock1 = new Lock({ ttl, lockScript, unlockScript, key, token: 'token1' });
+	const lock1 = new Lock(lockScript, unlockScript, ttl, key, 'token1');
 	let result = await lock1.lock();
 	expect(result.ok).toEqual(true);
 	expect(result.ttl).toEqual(-3);
@@ -34,7 +34,7 @@ it('Lock', async () => {
 	expect(result.ok).toEqual(true);
 	expect(result.ttl).toEqual(-4);
 
-	const lock2 = new Lock({ ttl, lockScript, unlockScript, key, token: 'token2' });
+	const lock2 = new Lock(lockScript, unlockScript, ttl, key, 'token2');
 	result = await lock2.lock();
 	expect(result.ok).toEqual(false);
 	expect(result.ttl).toBeGreaterThanOrEqual(0);
