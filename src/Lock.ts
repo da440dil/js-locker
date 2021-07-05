@@ -46,12 +46,12 @@ export class Lock implements ILock {
 	}
 
 	public async lock(): Promise<IResult> {
-		const res = await this.lockScript.run(1, this.key, this.token, this.ttl);
+		const res = await this.lockScript.run(this.key, this.token, this.ttl);
 		return { ok: res < -2, ttl: res };
 	}
 
 	public async unlock(): Promise<boolean> {
-		const res = await this.unlockScript.run(1, this.key, this.token);
+		const res = await this.unlockScript.run(this.key, this.token);
 		return res === 1;
 	}
 }
