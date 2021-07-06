@@ -29,8 +29,8 @@ export class Locker {
 		 */
 		randomBytesSize?: number;
 	}) {
-		this.lockScript = new RedisScript({ client, src: locksrc, keysNum: 1 });
-		this.unlockScript = new RedisScript({ client, src: unlocksrc, keysNum: 1 });
+		this.lockScript = new RedisScript({ client, src: locksrc, keyCount: 1 });
+		this.unlockScript = new RedisScript({ client, src: unlocksrc, keyCount: 1 });
 		this.ttl = ttl;
 		this.createRandomBytes = randomBytesFunc;
 		this.randomBytesSize = randomBytesSize;

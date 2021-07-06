@@ -12,8 +12,8 @@ let lockScript: RedisScript<number>;
 let unlockScript: RedisScript<number>;
 beforeAll(() => {
 	client = createClient();
-	lockScript = new RedisScript({ client, src: locksrc, keysNum: 1 });
-	unlockScript = new RedisScript({ client, src: unlocksrc, keysNum: 1 });
+	lockScript = new RedisScript({ client, src: locksrc, keyCount: 1 });
+	unlockScript = new RedisScript({ client, src: unlocksrc, keyCount: 1 });
 });
 afterAll(() => {
 	client.quit();
