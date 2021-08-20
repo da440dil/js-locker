@@ -1,21 +1,30 @@
-import { RedisClient } from 'redis';
+import { IRedisClient } from '@da440dil/js-redis-script';
 import { Locker } from './Locker';
 import { Lock } from './Lock';
 
-const runMock = jest.fn();
+const run = jest.fn();
 jest.mock('@da440dil/js-redis-script', () => {
 	return {
-		RedisScript: jest.fn().mockImplementation(() => {
-			return { run: runMock };
+		createScript: jest.fn().mockImplementation(() => {
+			return { run };
 		})
 	};
 });
 
-it('Locker', async () => {
-	const locker = new Locker({ client: {} as RedisClient, ttl: 100 });
+afterAll(() => {
+	jest.unmock('@da440dil/js-redis-script');
+});
 
-	runMock.mockImplementation(() => Promise.resolve(-3));
-	const { lock, result } = await locker.lock('');
-	expect(lock).toBeInstanceOf(Lock);
-	expect(result).toMatchObject({ ok: true, ttl: -3 });
+it('Locker', async () => {
+	const locker = new Locker({ client: {} as IRedisClient, ttl: 100 });
+
+	run.mockImplementation(() => Promise.resolve(-3));
+	let result = await locker.lock('');
+	expect(result.lock).toBeInstanceOf(Lock);
+	expect(result.result).toEqual({ ok: true, ttl: -3 });
+
+	run.mockImplementation(() => Promise.resolve(42));
+	result = await locker.lock('');
+	expect(result.lock).toBeInstanceOf(Lock);
+	expect(result.result).toEqual({ ok: false, ttl: 42 });
 });

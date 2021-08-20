@@ -1,21 +1,17 @@
-import { RedisClient } from 'redis';
-import { RedisScript } from '@da440dil/js-redis-script';
+import { IRedisClient } from '@da440dil/js-redis-script';
 import { RandomBytesFunc, createRandomBytes } from './random';
-import { IResult, ILock, Lock, locksrc, unlocksrc } from './Lock';
-
-
+import { LockerScript } from './LockerScript';
+import { IResult, ILock, Lock } from './Lock';
 
 /** Locker defines parameters for creating new lock. */
-export class Locker {
-	private lockScript: RedisScript<number>;
-	private unlockScript: RedisScript<number>;
-	private ttl: number;
+export class Locker implements ILocker {
+	private locker: LockerScript;
 	private createRandomBytes: RandomBytesFunc;
 	private randomBytesSize: number;
 
 	constructor({ client, ttl, randomBytesFunc = createRandomBytes, randomBytesSize = 16 }: {
-		/** Redis [client](https://github.com/NodeRedis/node-redis). */
-		client: RedisClient;
+		/** Redis client: [node-redis](https://github.com/NodeRedis/node-redis) or [ioredis](https://github.com/luin/ioredis). */
+		client: IRedisClient;
 		/** TTL of a key in milliseconds. Must be greater than 0. */
 		ttl: number;
 		/**
@@ -29,9 +25,7 @@ export class Locker {
 		 */
 		randomBytesSize?: number;
 	}) {
-		this.lockScript = new RedisScript({ client, src: locksrc, keyCount: 1 });
-		this.unlockScript = new RedisScript({ client, src: unlocksrc, keyCount: 1 });
-		this.ttl = ttl;
+		this.locker = new LockerScript(client, ttl);
 		this.createRandomBytes = randomBytesFunc;
 		this.randomBytesSize = randomBytesSize;
 	}
@@ -39,16 +33,14 @@ export class Locker {
 	/** Creates and applies new lock. */
 	public async lock(key: string): Promise<ILockResult> {
 		const buf = await this.createRandomBytes(this.randomBytesSize);
-		const lock = new Lock(
-			this.lockScript,
-			this.unlockScript,
-			this.ttl,
-			key,
-			buf.toString('base64'),
-		);
+		const lock = new Lock(this.locker, key, buf.toString('base64'));
 		const result = await lock.lock();
 		return { lock, result };
 	}
+}
+
+export interface ILocker {
+	lock(key: string): Promise<ILockResult>;
 }
 
 /** Contains new lock and result of applying the lock. */

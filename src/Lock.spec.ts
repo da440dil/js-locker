@@ -1,19 +1,18 @@
 import { promisify } from 'util';
 import { createClient, RedisClient } from 'redis';
-import { RedisScript } from '@da440dil/js-redis-script';
-import { Lock, locksrc, unlocksrc } from './Lock';
+import { LockerScript } from './LockerScript';
+import { Lock } from './Lock';
 
 const sleep = promisify(setTimeout);
 
+const ttl = 500;
 const key = 'key';
 
 let client: RedisClient;
-let lockScript: RedisScript<number>;
-let unlockScript: RedisScript<number>;
+let locker: LockerScript;
 beforeAll(() => {
 	client = createClient();
-	lockScript = new RedisScript({ client, src: locksrc, keyCount: 1 });
-	unlockScript = new RedisScript({ client, src: unlocksrc, keyCount: 1 });
+	locker = new LockerScript(client, ttl);
 });
 afterAll(() => {
 	client.quit();
@@ -23,9 +22,7 @@ beforeEach((cb) => {
 });
 
 it('Lock', async () => {
-	const ttl = 500;
-
-	const lock1 = new Lock(lockScript, unlockScript, ttl, key, 'token1');
+	const lock1 = new Lock(locker, key, 'token1');
 	let result = await lock1.lock();
 	expect(result.ok).toEqual(true);
 	expect(result.ttl).toEqual(-3);
@@ -34,7 +31,7 @@ it('Lock', async () => {
 	expect(result.ok).toEqual(true);
 	expect(result.ttl).toEqual(-4);
 
-	const lock2 = new Lock(lockScript, unlockScript, ttl, key, 'token2');
+	const lock2 = new Lock(locker, key, 'token2');
 	result = await lock2.lock();
 	expect(result.ok).toEqual(false);
 	expect(result.ttl).toBeGreaterThanOrEqual(0);

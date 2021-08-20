@@ -4,14 +4,14 @@
   "description": "Distributed locking using Redis",
   "main": "lib/index.js",
   "scripts": {
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage",
     "lint": "eslint --ext .js,.ts src",
     "build": "rimraf lib && tsc -p tsconfig.build.json && copyfiles -f \"src/*.lua\" lib",
     "preversion": "npm run lint && npm run test",
     "prepublishOnly": "npm run build",
     "file": "ts-node",
-    "coveralls": "jest --coverage --coverageReporters=text-lcov | coveralls"
+    "coveralls": "jest --runInBand --coverage --coverageReporters=text-lcov | coveralls"
   },
   "keywords": [
     "distributed",
@@ -29,7 +29,7 @@
     "node": ">=10.0"
   },
   "dependencies": {
-    "@da440dil/js-redis-script": "^0.2.1"
+    "@da440dil/js-redis-script": "^0.3.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.22",
