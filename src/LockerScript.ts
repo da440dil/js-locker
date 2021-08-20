@@ -20,7 +20,7 @@ export class LockerScript {
 		return this.lockScript.run(key, token, this.ttl);
 	}
 
-	public async unlock(key: string, token: string): Promise<number> {
+	public unlock(key: string, token: string): Promise<number> {
 		return this.unlockScript.run(key, token);
 	}
 }

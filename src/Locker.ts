@@ -1,42 +1,30 @@
-import { IRedisClient } from '@da440dil/js-redis-script';
-import { RandomBytesFunc, createRandomBytes } from './random';
 import { LockerScript } from './LockerScript';
+import { RandomBytesFunc } from './random';
 import { IResult, ILock, Lock } from './Lock';
 
-/** Locker defines parameters for creating new lock. */
-export class Locker {
+export class Locker implements ILocker {
 	private locker: LockerScript;
 	private createRandomBytes: RandomBytesFunc;
 	private randomBytesSize: number;
 
-	constructor({ client, ttl, randomBytesFunc = createRandomBytes, randomBytesSize = 16 }: {
-		/** Redis client: [node-redis](https://github.com/NodeRedis/node-redis) or [ioredis](https://github.com/luin/ioredis). */
-		client: IRedisClient;
-		/** TTL of a key in milliseconds. Must be greater than 0. */
-		ttl: number;
-		/**
-		 * Random generator to generate a lock token.
-		 * By default equals crypto.randomBytes.
-		 */
-		randomBytesFunc?: RandomBytesFunc;
-		/**
-		 * Bytes size to read from random generator to generate a lock token.
-		 * Must be greater than 0. By default equals 16.
-		 */
-		randomBytesSize?: number;
-	}) {
-		this.locker = new LockerScript(client, ttl);
+	constructor(locker: LockerScript, randomBytesFunc: RandomBytesFunc, randomBytesSize: number) {
+		this.locker = locker;
 		this.createRandomBytes = randomBytesFunc;
 		this.randomBytesSize = randomBytesSize;
 	}
 
-	/** Creates and applies new lock. */
 	public async lock(key: string): Promise<ILockResult> {
 		const buf = await this.createRandomBytes(this.randomBytesSize);
 		const lock = new Lock(this.locker, key, buf.toString('base64'));
 		const result = await lock.lock();
 		return { lock, result };
 	}
+}
+
+/** Implements distributed locking. */
+export interface ILocker {
+	/** Creates and applies new lock. */
+	lock(key: string): Promise<ILockResult>;
 }
 
 /** Contains new lock and result of applying the lock. */

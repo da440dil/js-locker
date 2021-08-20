@@ -10,13 +10,13 @@ Distributed locking using [Redis](https://redis.io/).
 ```typescript
 import { promisify } from 'util';
 import { createClient } from 'redis';
-import { Locker } from '@da440dil/js-locker';
+import { createLocker } from '@da440dil/js-locker';
 
 const sleep = promisify(setTimeout);
 
 async function main() {
     const client = createClient();
-    const locker = new Locker({ client, ttl: 100 });
+    const locker = createLocker({ client, ttl: 100 });
 
     const key = 'key';
     const lockUnlock = async (id: number) => {

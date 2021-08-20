@@ -1,12 +1,12 @@
 import { promisify } from 'util';
 import { createClient } from 'redis';
-import { Locker } from '..';
+import { createLocker } from '..';
 
 const sleep = promisify(setTimeout);
 
 async function main() {
 	const client = createClient();
-	const locker = new Locker({ client, ttl: 100 });
+	const locker = createLocker({ client, ttl: 100 });
 
 	const key = 'key';
 	const lockUnlock = async (id: number) => {

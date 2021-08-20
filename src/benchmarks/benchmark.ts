@@ -1,6 +1,6 @@
 import { hrtime } from 'process';
 import { createClient, RedisClient } from 'redis';
-import { Locker } from '..';
+import { createLocker } from '..';
 
 async function main() {
 	const client = createClient();
@@ -17,7 +17,7 @@ async function app(client: RedisClient): Promise<void> {
 	await flushdb(client);
 
 	const ttl = 60000;
-	const locker = new Locker({ client, ttl });
+	const locker = createLocker({ client, ttl });
 
 	const prefix = 'test';
 	const batchSize = parseInt(process.env.BENCHMARK_SIZE || '10000', 10);
