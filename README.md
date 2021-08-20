@@ -61,3 +61,8 @@ main().catch((err) => {
 ```
 npm run file src/examples/example.ts
 ```
+
+[Benchmarks](./src/benchmarks)
+```
+npm run file src/benchmarks/benchmark.ts
+```

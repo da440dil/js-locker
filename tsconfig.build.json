@@ -6,7 +6,8 @@
 	"exclude": [
 		"./lib",
 		"./src/**/*.spec.ts",
-		"./src/examples"
+		"./src/examples",
+		"./src/benchmarks"
 	],
 	"compilerOptions": {
 		"declaration": true
