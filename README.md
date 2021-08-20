@@ -57,3 +57,7 @@ main().catch((err) => {
     process.exit(1);
 });
 ```
+
+```
+npm run file src/examples/example.ts
+```
