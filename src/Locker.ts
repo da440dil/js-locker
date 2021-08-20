@@ -4,7 +4,7 @@ import { LockerScript } from './LockerScript';
 import { IResult, ILock, Lock } from './Lock';
 
 /** Locker defines parameters for creating new lock. */
-export class Locker implements ILocker {
+export class Locker {
 	private locker: LockerScript;
 	private createRandomBytes: RandomBytesFunc;
 	private randomBytesSize: number;
@@ -37,10 +37,6 @@ export class Locker implements ILocker {
 		const result = await lock.lock();
 		return { lock, result };
 	}
-}
-
-export interface ILocker {
-	lock(key: string): Promise<ILockResult>;
 }
 
 /** Contains new lock and result of applying the lock. */
