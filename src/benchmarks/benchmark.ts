@@ -22,24 +22,35 @@ async function app(client: RedisClient): Promise<void> {
 	const prefix = 'test';
 	const batchSize = parseInt(process.env.BENCHMARK_SIZE || '10000', 10);
 
-	const lockStart = hrtime.bigint();
+	const lockerLockStart = hrtime.bigint();
 	const results = await Promise.all(Array.from({ length: batchSize }, (_, i) => locker.lock(`${prefix}:${i}`)));
+	const lockerLockEnd = hrtime.bigint();
+	const lockerLockTime = toMs(lockerLockStart, lockerLockEnd);
+
+	const locks = results.map(({ lock }) => lock);
+
+	const lockStart = hrtime.bigint();
+	await Promise.all(locks.map((lock) => lock.lock()));
 	const lockEnd = hrtime.bigint();
 	const lockTime = toMs(lockStart, lockEnd);
 
-	const locks = results.map(({ lock }) => lock);
 	const unlockStart = hrtime.bigint();
 	await Promise.all(locks.map((lock) => lock.unlock()));
 	const unlockEnd = hrtime.bigint();
 	const unlockTime = toMs(unlockStart, unlockEnd);
 
 	console.table({
-		'Lock': {
+		'Locker.Lock': {
+			'Total (req)': batchSize,
+			'Total (ms)': lockerLockTime,
+			'Avg (req/sec)': toReqPerSec(batchSize, lockerLockTime)
+		},
+		'Lock.Lock': {
 			'Total (req)': batchSize,
 			'Total (ms)': lockTime,
 			'Avg (req/sec)': toReqPerSec(batchSize, lockTime)
 		},
-		'Unlock': {
+		'Lock.Unlock': {
 			'Total (req)': batchSize,
 			'Total (ms)': unlockTime,
 			'Avg (req/sec)': toReqPerSec(batchSize, unlockTime)
