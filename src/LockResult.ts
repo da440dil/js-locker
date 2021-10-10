@@ -7,8 +7,8 @@ export class LockResult implements ILockResult {
 		this.result = result;
 	}
 
-	public async lock(): Promise<Result> {
-		return this._lock.lock();
+	public async lock(ttl: number): Promise<Result> {
+		return this._lock.lock(ttl);
 	}
 
 	public async unlock(): Promise<boolean> {
@@ -26,15 +26,15 @@ export class LockResult implements ILockResult {
 
 /** Implements distributed locking. */
 export interface ILock {
-	/** Locks the lock if it is not already locked, otherwise extends the lock TTL. */
-	lock(): Promise<Result>;
-	/** Unlocks the lock. */
+	/** Applies the lock if it is not already applied, otherwise extends the lock TTL. */
+	lock(ttl: number): Promise<Result>;
+	/** Releases the lock. */
 	unlock(): Promise<boolean>;
 }
 
-/** Result of locking a lock. */
+/** Result of applying a lock. */
 export type Result = {
-	/** Success flag of locking a lock. */
+	/** Success flag of applying a lock. */
 	ok: boolean;
 	/**
 	 * TTL of a lock in milliseconds.
@@ -43,5 +43,5 @@ export type Result = {
 	ttl: number;
 };
 
-/** Contains new lock and result of locking the lock. */
+/** Contains new lock and result of applying a lock. */
 export interface ILockResult extends ILock, Result { }

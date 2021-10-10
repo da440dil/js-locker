@@ -5,12 +5,10 @@ import { Locker, ILocker } from './Locker';
 export { ILockResult, Result } from './LockResult';
 export { ILocker };
 
-/** Creates new locker. */
-export const createLocker = ({ client, ttl }: {
-	/** Redis client: [node-redis](https://github.com/NodeRedis/node-redis) or [ioredis](https://github.com/luin/ioredis). */
-	client: IRedisClient;
-	/** TTL of a key in milliseconds. Must be greater than 0. */
-	ttl: number;
-}): ILocker => {
-	return new Locker(new LockerScript(client, ttl));
+/**
+ * Creates new locker.
+ * @param {IRedisClient} client Redis client: [node-redis](https://github.com/NodeRedis/node-redis) or [ioredis](https://github.com/luin/ioredis).
+ */
+export const createLocker = (client: IRedisClient): ILocker => {
+	return new Locker(new LockerScript(client));
 };

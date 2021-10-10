@@ -10,10 +10,10 @@ export class Locker implements ILocker {
 		this.locker = locker;
 	}
 
-	public async lock(key: string): Promise<ILockResult> {
+	public async lock(key: string, ttl: number): Promise<ILockResult> {
 		const value = await this.randomString();
 		const lock = new Lock(this.locker, key, value);
-		const result = await lock.lock();
+		const result = await lock.lock(ttl);
 		return new LockResult(lock, result);
 	}
 
@@ -31,6 +31,6 @@ export class Locker implements ILocker {
 
 /** Defines parameters for creating new lock. */
 export interface ILocker {
-	/** Creates and locks new lock. */
-	lock(key: string): Promise<ILockResult>;
+	/** Creates and applies new lock. */
+	lock(key: string, ttl: number): Promise<ILockResult>;
 }

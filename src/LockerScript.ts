@@ -8,16 +8,14 @@ const unlocksrc = readFileSync(join(__dirname, 'unlock.lua')).toString();
 export class LockerScript {
 	private lockScript: IRedisScript<number>;
 	private unlockScript: IRedisScript<number>;
-	private ttl: number;
 
-	constructor(client: IRedisClient, ttl: number) {
+	constructor(client: IRedisClient) {
 		this.lockScript = createScript({ client, src: locksrc, numberOfKeys: 1 });
 		this.unlockScript = createScript({ client, src: unlocksrc, numberOfKeys: 1 });
-		this.ttl = ttl;
 	}
 
-	public lock(key: string, value: string): Promise<number> {
-		return this.lockScript.run(key, value, this.ttl);
+	public lock(key: string, value: string, ttl: number): Promise<number> {
+		return this.lockScript.run(key, value, ttl);
 	}
 
 	public unlock(key: string, value: string): Promise<number> {

@@ -16,7 +16,7 @@ it('should create lock', async () => {
 	});
 
 	lock.mockImplementation(() => Promise.resolve(42));
-	const result = await locker.lock('');
+	const result = await locker.lock('', 100);
 	expect(result.ok).toBe(false);
 	expect(result.ttl).toEqual(42);
 });
@@ -27,5 +27,5 @@ it('should throw error if crypto.randomBytes throws error', async () => {
 		cb(err, Buffer.alloc(0));
 	});
 
-	await expect(locker.lock('')).rejects.toThrow(err);
+	await expect(locker.lock('', 100)).rejects.toThrow(err);
 });

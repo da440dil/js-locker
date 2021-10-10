@@ -1,43 +1,36 @@
-import { promisify } from 'util';
 import { createClient } from 'redis';
 import { createLocker } from '..';
 
-const sleep = promisify(setTimeout);
-
 async function main() {
 	const client = createClient();
-	const locker = createLocker({ client, ttl: 100 });
+	// Create new locker.
+	const locker = createLocker(client);
 
-	const key = 'key';
-	const lockUnlock = async (id: number) => {
-		const lockResult = await locker.lock(key);
-		if (!lockResult.ok) {
-			console.log('Failed to apply lock #%d, retry after %dms', id, lockResult.ttl);
-			return;
-		}
-		console.log('Lock #%d applied', id);
-		await sleep(50);
-		const result = await lockResult.lock();
-		if (!result.ok) {
-			console.log('Failed to extend lock #%d, retry after %dms', id, result.ttl);
-			return;
-		}
-		console.log('Lock #%d extended', id);
-		await sleep(50);
-		const ok = await lockResult.unlock();
-		if (!ok) {
-			console.log('Failed to release lock #%d', id);
-			return;
-		}
-		console.log('Lock #%d released', id);
-	};
+	// Try to apply lock.
+	const lockResult = await locker.lock('some-key', 1000);
+	if (!lockResult.ok) {
+		console.log('Failed to apply lock, retry after %dms', lockResult.ttl);
+		return;
+	}
+	console.log('Lock applied');
 
-	await Promise.all([lockUnlock(1), lockUnlock(2)]);
-	// Output:
-	// Lock #1 applied
-	// Failed to apply lock #2, retry after 100ms
-	// Lock #1 extended
-	// Lock #1 released
+	// some code here
+
+	// Optionally try to extend lock.
+	const result = await lockResult.lock(1000);
+	if (!result.ok) {
+		console.log('Failed to extend lock, retry after %dms', result.ttl);
+		return;
+	}
+	console.log('Lock extended');
+
+	// Try to release lock.
+	const ok = await lockResult.unlock();
+	if (!ok) {
+		console.log('Failed to release lock');
+		return;
+	}
+	console.log('Lock released');
 
 	client.quit();
 }

@@ -17,19 +17,19 @@ async function app(client: RedisClient): Promise<void> {
 	await flushdb(client);
 
 	const ttl = 60000;
-	const locker = createLocker({ client, ttl });
+	const locker = createLocker(client);
 
 	const prefix = 'test';
 	const batchSize = parseInt(process.env.BENCHMARK_SIZE || '10000', 10);
 	const keys = Array.from({ length: batchSize }, (_, i) => `${prefix}:${i}`);
 
 	const lockerLockStart = hrtime.bigint();
-	const locks = await Promise.all(keys.map((key) => locker.lock(key)));
+	const locks = await Promise.all(keys.map((key) => locker.lock(key, ttl)));
 	const lockerLockEnd = hrtime.bigint();
 	const lockerLockTime = toMs(lockerLockStart, lockerLockEnd);
 
 	const lockStart = hrtime.bigint();
-	await Promise.all(locks.map((lock) => lock.lock()));
+	await Promise.all(locks.map((lock) => lock.lock(ttl)));
 	const lockEnd = hrtime.bigint();
 	const lockTime = toMs(lockStart, lockEnd);
 

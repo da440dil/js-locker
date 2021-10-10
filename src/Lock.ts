@@ -12,8 +12,8 @@ export class Lock implements ILock {
 		this.token = token;
 	}
 
-	public async lock(): Promise<Result> {
-		const v = await this.locker.lock(this.key, this.token);
+	public async lock(ttl: number): Promise<Result> {
+		const v = await this.locker.lock(this.key, this.token, ttl);
 		return { ok: v < -2, ttl: v };
 	}
 
