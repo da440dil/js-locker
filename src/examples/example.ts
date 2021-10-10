@@ -10,21 +10,21 @@ async function main() {
 
 	const key = 'key';
 	const lockUnlock = async (id: number) => {
-		const { lock, result } = await locker.lock(key);
-		if (!result.ok) {
-			console.log('Failed to apply lock #%d, retry after %dms', id, result.ttl);
+		const lockResult = await locker.lock(key);
+		if (!lockResult.ok) {
+			console.log('Failed to apply lock #%d, retry after %dms', id, lockResult.ttl);
 			return;
 		}
 		console.log('Lock #%d applied', id);
 		await sleep(50);
-		const res = await lock.lock();
-		if (!res.ok) {
-			console.log('Failed to extend lock #%d, retry after %dms', id, res.ttl);
+		const result = await lockResult.lock();
+		if (!result.ok) {
+			console.log('Failed to extend lock #%d, retry after %dms', id, result.ttl);
 			return;
 		}
 		console.log('Lock #%d extended', id);
 		await sleep(50);
-		const ok = await lock.unlock();
+		const ok = await lockResult.unlock();
 		if (!ok) {
 			console.log('Failed to release lock #%d', id);
 			return;

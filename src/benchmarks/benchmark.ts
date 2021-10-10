@@ -21,13 +21,12 @@ async function app(client: RedisClient): Promise<void> {
 
 	const prefix = 'test';
 	const batchSize = parseInt(process.env.BENCHMARK_SIZE || '10000', 10);
+	const keys = Array.from({ length: batchSize }, (_, i) => `${prefix}:${i}`);
 
 	const lockerLockStart = hrtime.bigint();
-	const results = await Promise.all(Array.from({ length: batchSize }, (_, i) => locker.lock(`${prefix}:${i}`)));
+	const locks = await Promise.all(keys.map((key) => locker.lock(key)));
 	const lockerLockEnd = hrtime.bigint();
 	const lockerLockTime = toMs(lockerLockStart, lockerLockEnd);
-
-	const locks = results.map(({ lock }) => lock);
 
 	const lockStart = hrtime.bigint();
 	await Promise.all(locks.map((lock) => lock.lock()));

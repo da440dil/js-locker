@@ -1,34 +1,36 @@
+import { randomBytes } from 'crypto';
 import { LockerScript } from './LockerScript';
-import { RandomBytesFunc } from './random';
-import { IResult, ILock, Lock } from './Lock';
+import { Lock } from './Lock';
+import { LockResult, ILockResult } from './LockResult';
 
 export class Locker implements ILocker {
 	private locker: LockerScript;
-	private createRandomBytes: RandomBytesFunc;
-	private randomBytesSize: number;
 
-	constructor(locker: LockerScript, randomBytesFunc: RandomBytesFunc, randomBytesSize: number) {
+	constructor(locker: LockerScript) {
 		this.locker = locker;
-		this.createRandomBytes = randomBytesFunc;
-		this.randomBytesSize = randomBytesSize;
 	}
 
 	public async lock(key: string): Promise<ILockResult> {
-		const buf = await this.createRandomBytes(this.randomBytesSize);
-		const lock = new Lock(this.locker, key, buf.toString('base64'));
+		const value = await this.randomString();
+		const lock = new Lock(this.locker, key, value);
 		const result = await lock.lock();
-		return { lock, result };
+		return new LockResult(lock, result);
+	}
+
+	private randomString(): Promise<string> {
+		return new Promise((resolve, reject) => {
+			randomBytes(16, (err, buf) => {
+				if (err) {
+					return reject(err);
+				}
+				resolve(buf.toString('base64'));
+			});
+		});
 	}
 }
 
-/** Implements distributed locking. */
+/** Defines parameters for creating new lock. */
 export interface ILocker {
-	/** Creates and applies new lock. */
+	/** Creates and locks new lock. */
 	lock(key: string): Promise<ILockResult>;
-}
-
-/** Contains new lock and result of applying the lock. */
-export interface ILockResult {
-	lock: ILock;
-	result: IResult;
 }

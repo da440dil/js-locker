@@ -16,11 +16,11 @@ export class LockerScript {
 		this.ttl = ttl;
 	}
 
-	public lock(key: string, token: string): Promise<number> {
-		return this.lockScript.run(key, token, this.ttl);
+	public lock(key: string, value: string): Promise<number> {
+		return this.lockScript.run(key, value, this.ttl);
 	}
 
-	public unlock(key: string, token: string): Promise<number> {
-		return this.unlockScript.run(key, token);
+	public unlock(key: string, value: string): Promise<number> {
+		return this.unlockScript.run(key, value);
 	}
 }

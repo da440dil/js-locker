@@ -21,7 +21,7 @@ beforeEach((cb) => {
 	client.del(key, cb);
 });
 
-it('Lock', async () => {
+it('should lock & unlock', async () => {
 	const lock1 = new Lock(locker, key, 'token1');
 	let result = await lock1.lock();
 	expect(result.ok).toEqual(true);
