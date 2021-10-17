@@ -7,9 +7,9 @@ async function main() {
 	const locker = createLocker(client);
 
 	// Try to apply lock.
-	const lockResult = await locker.lock('some-key', 1000);
-	if (!lockResult.ok) {
-		console.log('Failed to apply lock, retry after %dms', lockResult.ttl);
+	const lock = await locker.lock('some-key', 1000);
+	if (!lock.ok) {
+		console.log('Failed to apply lock, retry after %dms', lock.ttl);
 		return;
 	}
 	console.log('Lock applied');
@@ -17,7 +17,7 @@ async function main() {
 	// some code here
 
 	// Optionally try to extend lock.
-	const result = await lockResult.lock(1000);
+	const result = await lock.lock(1000);
 	if (!result.ok) {
 		console.log('Failed to extend lock, retry after %dms', result.ttl);
 		return;
@@ -25,7 +25,7 @@ async function main() {
 	console.log('Lock extended');
 
 	// Try to release lock.
-	const ok = await lockResult.unlock();
+	const ok = await lock.unlock();
 	if (!ok) {
 		console.log('Failed to release lock');
 		return;
