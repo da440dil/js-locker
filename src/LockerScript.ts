@@ -1,9 +1,9 @@
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { resolve } from 'path';
 import { IRedisClient, IRedisScript, createScript } from '@da440dil/js-redis-script';
 
-const locksrc = readFileSync(join(__dirname, 'lock.lua')).toString();
-const unlocksrc = readFileSync(join(__dirname, 'unlock.lua')).toString();
+const locksrc = readFileSync(resolve(__dirname, '../lock.lua')).toString();
+const unlocksrc = readFileSync(resolve(__dirname, '../unlock.lua')).toString();
 
 export class LockerScript {
 	private lockScript: IRedisScript<number>;
