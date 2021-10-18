@@ -31,6 +31,10 @@ export class Locker implements ILocker {
 
 /** Defines parameters for creating new lock. */
 export interface ILocker {
-	/** Creates and applies new lock. */
+	/**
+	 * Creates and applies new lock.
+	 * @param key The lock key.
+	 * @param ttl TTL of the lock key. Must be positive integer.
+	 */
 	lock(key: string, ttl: number): Promise<ILockResult>;
 }

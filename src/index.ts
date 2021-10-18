@@ -7,7 +7,7 @@ export { ILocker };
 
 /**
  * Creates new locker.
- * @param {IRedisClient} client Redis client: [node-redis](https://github.com/NodeRedis/node-redis) or [ioredis](https://github.com/luin/ioredis).
+ * @param client Minimal Redis client interface: [node-redis](https://github.com/NodeRedis/node-redis) and [ioredis](https://github.com/luin/ioredis) both implement it.
  */
 export const createLocker = (client: IRedisClient): ILocker => {
 	return new Locker(new LockerScript(client));

@@ -26,7 +26,10 @@ export class LockResult implements ILockResult {
 
 /** Implements distributed locking. */
 export interface ILock {
-	/** Applies the lock if it is not already applied, otherwise extends the lock TTL. */
+	/**
+	 * Applies the lock if it is not already applied, otherwise extends the lock TTL.
+	 * @param ttl TTL of the lock key. Must be positive integer.
+	 */
 	lock(ttl: number): Promise<Result>;
 	/** Releases the lock. */
 	unlock(): Promise<boolean>;
