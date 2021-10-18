@@ -38,7 +38,7 @@
             {
                 "selector": "class",
                 "format": [
-                    "StrictPascalCase"
+                    "PascalCase"
                 ]
             },
             {
@@ -50,6 +50,7 @@
             {
                 "selector": "variable",
                 "format": [
+					"PascalCase",
                     "camelCase",
                     "UPPER_CASE"
                 ]
