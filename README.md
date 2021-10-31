@@ -5,7 +5,7 @@
 
 Distributed locking using [Redis](https://redis.io/).
 
-[Example](./src/examples/example.ts) usage:
+[Example](./examples/example.ts) usage:
 
 ```typescript
 import { createClient } from 'redis';
@@ -20,7 +20,7 @@ async function main() {
 	const lock = await locker.lock('some-key', 1000);
 	if (!lock.ok) {
 		console.log('Failed to apply lock, retry after %dms', lock.ttl);
-		return;
+		return client.quit();
 	}
 	console.log('Lock applied');
 
@@ -30,7 +30,7 @@ async function main() {
 	const result = await lock.lock(1000);
 	if (!result.ok) {
 		console.log('Failed to extend lock, retry after %dms', result.ttl);
-		return;
+		return client.quit();
 	}
 	console.log('Lock extended');
 
@@ -38,11 +38,11 @@ async function main() {
 	const ok = await lock.unlock();
 	if (!ok) {
 		console.log('Failed to release lock');
-		return;
+		return client.quit();
 	}
 	console.log('Lock released');
 
-	client.quit();
+	return client.quit();
 }
 
 main().catch((err) => {
@@ -52,10 +52,10 @@ main().catch((err) => {
 ```
 
 ```
-npm run file src/examples/example.ts
+npm run file examples/example.ts
 ```
 
-[Benchmarks](./src/benchmarks)
+[Benchmarks](./benchmarks)
 ```
-npm run file src/benchmarks/benchmark.ts
+npm run file benchmarks/benchmark.ts
 ```
