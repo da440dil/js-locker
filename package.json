@@ -6,7 +6,7 @@
   "scripts": {
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage",
-    "lint": "eslint --ext .ts src",
+    "lint": "eslint --ext .ts src examples benchmarks",
     "build": "rimraf lib && tsc -p tsconfig.build.json",
     "preversion": "npm run lint && npm run test",
     "prepublishOnly": "npm run build",

@@ -5,11 +5,11 @@
 	],
 	"exclude": [
 		"./lib",
-		"./src/**/*.spec.ts",
-		"./src/examples",
-		"./src/benchmarks"
+		"./src/**/*.spec.ts"
 	],
 	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "lib",
 		"declaration": true
 	}
 }

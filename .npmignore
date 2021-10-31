@@ -1,5 +1,7 @@
 src/
 coverage/
+benchmarks/
+examples/
 tsconfig.json
 tsconfig.build.json
 .eslintrc

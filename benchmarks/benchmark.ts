@@ -1,6 +1,6 @@
 import { hrtime } from 'process';
 import { createClient, RedisClient } from 'redis';
-import { createLocker } from '..';
+import { createLocker } from '../src';
 
 async function main() {
 	const client = createClient();
