@@ -5,7 +5,9 @@
 
 Distributed locking using [Redis](https://redis.io/).
 
-[Example](./examples/example.ts) usage:
+Supported Redis clients: [node-redis](https://github.com/NodeRedis/node-redis) v3 and v4, [ioredis](https://github.com/luin/ioredis) v4.
+
+[Example](./examples/example.ts) usage with [node-redis](https://github.com/NodeRedis/node-redis) v4:
 
 ```typescript
 import { createClient } from 'redis';
@@ -13,6 +15,8 @@ import { createLocker } from '@da440dil/js-locker';
 
 async function main() {
 	const client = createClient();
+	await client.connect();
+
 	// Create new locker.
 	const locker = createLocker(client);
 
@@ -42,7 +46,7 @@ async function main() {
 	}
 	console.log('Lock released');
 
-	return client.quit();
+	await client.quit();
 }
 
 main().catch((err) => {

@@ -1,5 +1,5 @@
 import { promisify } from 'util';
-import { createClient, RedisClient } from 'redis';
+import { createClient } from 'redis';
 import { LockerScript } from './LockerScript';
 import { Lock } from './Lock';
 
@@ -8,17 +8,17 @@ const sleep = promisify(setTimeout);
 const ttl = 500;
 const key = 'key';
 
-let client: RedisClient;
+const client = createClient();
 let locker: LockerScript;
-beforeAll(() => {
-	client = createClient();
+beforeAll(async () => {
+	await client.connect();
 	locker = new LockerScript(client);
 });
-afterAll(() => {
-	client.quit();
+afterAll(async () => {
+	await client.quit();
 });
-beforeEach((cb) => {
-	client.del(key, cb);
+beforeEach(async () => {
+	await client.del(key);
 });
 
 it('should lock & unlock', async () => {

@@ -1,11 +1,12 @@
 import { hrtime } from 'process';
-import { createClient, RedisClient } from 'redis';
+import { createClient, RedisClientType } from 'redis';
 import { createLocker } from '../src';
 
 async function main() {
 	const client = createClient();
-	await app(client);
-	client.quit();
+	await client.connect();
+	await app(client as RedisClientType);
+	await client.quit();
 }
 
 main().catch((err) => {
@@ -13,8 +14,8 @@ main().catch((err) => {
 	process.exit(1);
 });
 
-async function app(client: RedisClient): Promise<void> {
-	await flushdb(client);
+async function app(client: RedisClientType): Promise<void> {
+	await client.FLUSHDB();
 
 	const ttl = 60000;
 	const locker = createLocker(client);
@@ -56,18 +57,7 @@ async function app(client: RedisClient): Promise<void> {
 		}
 	});
 
-	await flushdb(client);
-}
-
-function flushdb(client: RedisClient): Promise<void> {
-	return new Promise<void>((resolve, reject) => {
-		client.flushdb((err) => {
-			if (err) {
-				return reject(err);
-			}
-			resolve();
-		});
-	});
+	await client.FLUSHDB();
 }
 
 function toMs(start: bigint, end: bigint): number {

@@ -3,6 +3,8 @@ import { createLocker } from '../src';
 
 async function main() {
 	const client = createClient();
+	await client.connect();
+
 	// Create new locker.
 	const locker = createLocker(client);
 
@@ -32,7 +34,7 @@ async function main() {
 	}
 	console.log('Lock released');
 
-	return client.quit();
+	await client.quit();
 }
 
 main().catch((err) => {
